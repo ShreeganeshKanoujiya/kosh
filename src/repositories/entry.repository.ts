@@ -101,6 +101,16 @@ export const entryRepository = {
     return { items, total, sums };
   },
 
+  /** Every matching entry (up to `take`) in the list screen's order — for exports. */
+  listForExport(companyId: string, query: ListEntriesQuery, take: number, db: DbClient = prisma) {
+    return db.pettyCashEntry.findMany({
+      where: buildEntryWhere(companyId, query),
+      include: entryInclude,
+      orderBy: ORDER[query.sort],
+      take,
+    });
+  },
+
   /**
    * Optimistic concurrency: the write only applies if the row still has the version
    * (and, optionally, one of the statuses) the caller saw. Returns false on a lost race.

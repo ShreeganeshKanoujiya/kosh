@@ -100,3 +100,17 @@ export function matchPreset(from: Ymd | undefined, to: Ymd | undefined, today: Y
   }
   return null;
 }
+
+export function startOfQuarter(ymd: Ymd): Ymd {
+  const m = Number(ymd.slice(5, 7));
+  const q = Math.floor((m - 1) / 3) * 3 + 1;
+  return `${ymd.slice(0, 4)}-${String(q).padStart(2, "0")}-01`;
+}
+
+/** Indian companies usually start the financial year in April (startMonth = 4). */
+export function startOfFinancialYear(ymd: Ymd, startMonth: number): Ymd {
+  const y = Number(ymd.slice(0, 4));
+  const m = Number(ymd.slice(5, 7));
+  const fy = m >= startMonth ? y : y - 1;
+  return `${fy}-${String(startMonth).padStart(2, "0")}-01`;
+}

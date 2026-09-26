@@ -57,6 +57,9 @@ export const AWAITING_REVIEW_STATUSES: EntryStatusValue[] = ["submitted", "pendi
 /** Rows per page on the transactions list (server prefetch and client fetches must agree). */
 export const ENTRY_PAGE_SIZE = 25;
 
+/** The approvals queue: everything awaiting review, oldest first. */
+export const APPROVAL_QUERY = { status: "submitted,pending_approval", sort: "date_asc", pageSize: "50" };
+
 export type EntryAction = "edit" | "submit" | "verify" | "approve" | "reject" | "cancel" | "delete";
 
 export const CURRENCIES = [

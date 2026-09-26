@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
-import type { CashAccountDTO, CategoryDTO, CompanySettingsDTO, RoleSummaryDTO, UserDTO } from "@/types/dto";
+import type { CashAccountDTO, CategoryDTO, CompanySettingsDTO, UserDTO } from "@/types/dto";
 import type { Paginated } from "@/types/api";
 import type { CashAccountInput, CategoryInput, UpdateCashAccountInput, UpdateSettingsInput } from "@/validators/company.schema";
 
@@ -86,4 +86,3 @@ export function useReferenceMutations() {
   };
 }
 
-export type { RoleSummaryDTO };

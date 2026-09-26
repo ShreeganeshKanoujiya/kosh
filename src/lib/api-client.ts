@@ -56,12 +56,8 @@ async function send(path: string, options: RequestOptions) {
   });
 }
 
-/**
- * Typed fetch for our REST API. Unwraps the `{ success, data }` envelope and
- * throws ApiClientError on failure. Session renewal normally happens in the
- * proxy; this is the fallback when a request races an expiring token.
- */
-export async function api<T>(path: string, options: RequestOptions = {}): Promise<{ data: T; message?: string }> {
+/** Send, and on a 401 renew the session once and retry (or go to login). */
+async function sendAuthed(path: string, options: RequestOptions) {
   let res = await send(path, options);
 
   if (res.status === 401 && !path.startsWith("/api/auth/")) {
@@ -73,7 +69,41 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
       throw new ApiClientError("SESSION_EXPIRED", "Your session has expired. Please log in again.", 401);
     }
   }
+  return res;
+}
 
+/**
+ * Typed fetch for our REST API. Unwraps the `{ success, data }` envelope and
+ * throws ApiClientError on failure. Session renewal normally happens in the
+ * proxy; this is the fallback when a request races an expiring token.
+ */
+export async function api<T>(path: string, options: RequestOptions = {}): Promise<{ data: T; message?: string }> {
+  const res = await sendAuthed(path, options);
+  return unwrap<T>(res);
+}
+
+/**
+ * POST to an endpoint that answers with a file (exports) and hand it to the browser
+ * as a download. Errors still arrive as the JSON envelope and throw ApiClientError.
+ */
+export async function apiDownload(path: string): Promise<{ filename: string }> {
+  const res = await sendAuthed(path, { method: "POST" });
+  if (!res.ok) await unwrap(res);
+
+  const blob = await res.blob();
+  const filename = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1] ?? "export";
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  return { filename };
+}
+
+async function unwrap<T>(res: Response): Promise<{ data: T; message?: string }> {
   let body: ApiResponse<T> | null = null;
   try {
     body = (await res.json()) as ApiResponse<T>;

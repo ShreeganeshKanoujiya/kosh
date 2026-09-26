@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
+import { ExportMenu } from "@/components/reports/export-menu";
 import { useSession } from "@/components/session-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,15 @@ const SORTS = [
   { value: "amount_asc", label: "Lowest amount" },
 ];
 
-export function TransactionsView({ initialQuery, initialData }: { initialQuery: EntryQuery; initialData: EntryListDTO }) {
+export function TransactionsView({
+  initialQuery,
+  initialData,
+  sheetsEnabled,
+}: {
+  initialQuery: EntryQuery;
+  initialData: EntryListDTO;
+  sheetsEnabled: boolean;
+}) {
   const me = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -66,20 +75,16 @@ export function TransactionsView({ initialQuery, initialData }: { initialQuery: 
 
   const choosePreset = (p: DatePreset | null) => setQuery(p ? presetRange(p, today) : { from: "", to: "" });
 
+  // Export every matching entry (not just this page) with exactly these filters.
+  const exportQuery = new URLSearchParams(Object.entries(query).filter(([k, v]) => v && k !== "page" && k !== "pageSize")).toString();
+
   return (
     <>
       <PageHeader
         title="Transactions"
         description="Every petty cash entry, newest first."
         actions={
-          me.can("transactions.create") && (
-            <Button asChild className="hidden md:inline-flex">
-              <Link href="/transactions/new?mode=manual">
-                <Plus />
-                Add transaction
-              </Link>
-            </Button>
-          )
+          me.can("reports.export") && (data?.total ?? 0) > 0 && <ExportMenu source="transactions" query={exportQuery} sheetsEnabled={sheetsEnabled} />
         }
       />
 

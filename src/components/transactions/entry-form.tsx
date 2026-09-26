@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, Minus, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { ChipGroup } from "@/components/forms/chip-group";
@@ -106,7 +106,7 @@ export function EntryForm({
   const { create, update, transition } = useEntryMutations();
   const [formError, setFormError] = useState<string | null>(null);
   const [duplicates, setDuplicates] = useState<DuplicateCandidateDTO[] | null>(null);
-  const pending = useRef<CreateEntryInput | null>(null);
+  const [pendingValues, setPendingValues] = useState<CreateEntryInput | null>(null);
   const initial = defaultsFor(entry, settings);
   const [showMore, setShowMore] = useState(
     Boolean(initial.merchantName || initial.upiId || initial.transactionId || initial.referenceNumber),
@@ -114,7 +114,7 @@ export function EntryForm({
 
   const form = useForm({ resolver: zodResolver(createEntrySchema), defaultValues: initial });
   const { control, register, handleSubmit, setError, setValue, formState } = form;
-  const [type, paymentMethod] = useWatch({ control, name: ["type", "paymentMethod"] });
+  const [type, paymentMethod, amountText] = useWatch({ control, name: ["type", "paymentMethod", "amount"] });
   const errors = formState.errors;
 
   // Keep a now-inactive category selectable on an entry that already uses it.
@@ -134,8 +134,8 @@ export function EntryForm({
     setFormError(null);
     try {
       if (entry) {
-        // Create-only flags don't belong on an update.
-        const { submit: _submit, allowDuplicate: _dup, source: _source, ...fields } = values;
+        // Only the editable fields go on an update (no create-only flags).
+        const fields = Object.fromEntries(FIELDS.map((k) => [k, values[k]])) as Omit<CreateEntryInput, "submit" | "allowDuplicate" | "source">;
         const { data } = await update.mutateAsync({
           id: entry.id,
           input: { ...fields, type: fields.type ?? entry.type, version: entry.version },
@@ -157,7 +157,7 @@ export function EntryForm({
       router.refresh();
     } catch (error) {
       if (error instanceof ApiClientError && error.code === "POSSIBLE_DUPLICATE") {
-        pending.current = values;
+        setPendingValues(values);
         setDuplicates((error.details as { duplicates: DuplicateCandidateDTO[] }).duplicates);
         return;
       }
@@ -216,7 +216,8 @@ export function EntryForm({
                 aria-invalid={!!errors.amount}
                 autoFocus={!entry}
                 {...register("amount")}
-                className="w-full max-w-[14ch] bg-transparent text-center text-5xl font-semibold tracking-tight tabular-nums outline-none placeholder:text-muted-foreground/40"
+                style={{ width: `${Math.min(14, Math.max(1, String(amountText ?? "").length)) + 0.4}ch` }}
+                className="max-w-full bg-transparent text-5xl font-semibold tracking-tight tabular-nums outline-none placeholder:text-muted-foreground/40"
               />
             </div>
             {settings.maxExpenseLimit && type === "expense" && (
@@ -422,8 +423,9 @@ export function EntryForm({
         saving={create.isPending}
         onCancel={() => setDuplicates(null)}
         onSaveAnyway={async () => {
-          const values = pending.current;
+          const values = pendingValues;
           setDuplicates(null);
+          setPendingValues(null);
           if (values) await persist({ ...values, allowDuplicate: true });
         }}
       />

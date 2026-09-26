@@ -118,6 +118,8 @@ model CompanySettings {
   approvalRequired        Boolean  @default(true) @map("approval_required")
   receiptRequired         Boolean  @default(false) @map("receipt_required")
   maxExpenseLimit         Decimal? @map("max_expense_limit") @db.Decimal(14, 2)
+  /// Spreadsheet that Google Sheets exports are written to (shared with the service account). Null = not connected.
+  googleSheetId           String?  @map("google_sheet_id") @db.VarChar(128)
   createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 

@@ -103,6 +103,7 @@ JWT_ACCESS_SECRET="<output of: openssl rand -base64 48>"
 | `JWT_ACCESS_SECRET` | Yes | At least 32 characters. Signs 15-minute access tokens. Rotating it signs everyone out on their next request. |
 | `ACCESS_TOKEN_TTL_MINUTES` / `REFRESH_TOKEN_TTL_DAYS` / `SESSION_MAX_AGE_DAYS` | No | Defaults are 15 minutes, 7 days and 30 days. |
 | `RESEND_API_KEY`, `MAIL_FROM` | No | Emails for password resets. Without them, reset links are printed to the server log in development only. |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | No | "Export to Google Sheets". See [step 10](#10-google-sheets-export-optional). Set both or neither. |
 
 The app validates these at startup (`src/instrumentation.ts`) and refuses to start if a required value is missing or malformed.
 
@@ -175,7 +176,28 @@ Attachments are stored in Supabase Storage, never in Postgres. Set this up befor
 
 The `service_role` key bypasses all Storage policies. It's used only in server code, and a variable without the `NEXT_PUBLIC_` prefix can't be bundled into client JavaScript by Next.js. Object keys are random and scoped by company (`<company_id>/<yyyy>/<mm>/<random>.<ext>`). Uploaded filenames are never used as storage paths.
 
-## 10. Operations checklist
+## 10. Google Sheets export (optional)
+
+CSV, Excel and PDF exports need no setup. **Export to Google Sheets** writes each export as a new tab in a spreadsheet the company chooses. PostgreSQL stays the source of truth, and Kosh never edits or deletes existing tabs.
+
+Kosh uses one Google service account for all companies. Each company shares its own sheet with that account.
+
+1. In the [Google Cloud console](https://console.cloud.google.com/), create a project (or reuse one) and enable the **Google Sheets API** (**APIs & Services → Library**).
+2. Go to **IAM & Admin → Service Accounts → Create service account**. It needs no project roles.
+3. Open the account, go to **Keys → Add key → Create new key → JSON**, and download the file.
+4. Copy two values from the JSON file into the environment:
+
+   ```dotenv
+   GOOGLE_SERVICE_ACCOUNT_EMAIL="kosh-exports@<project>.iam.gserviceaccount.com"   # "client_email"
+   GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----\n"   # "private_key", as-is
+   ```
+
+   The private key is a secret: server-only, never `NEXT_PUBLIC_`. Kosh only requests the `spreadsheets` scope, so the account can reach only the sheets that are shared with it.
+5. Redeploy. In Kosh, an owner or admin opens **Settings → Company → Google Sheets**, shares their sheet with the service-account email as an **Editor**, and pastes the sheet's link. Kosh checks that it can open the sheet before saving.
+
+Users need the `google_sheets.export` permission (Owner and Admin by default) to see **Export → Google Sheets**. Every export, in any format, is recorded in the audit log.
+
+## 11. Operations checklist
 
 - **Backups:** paid plans take daily backups automatically. Turn on **Point-in-Time Recovery** (**Database → Backups**) for financial data.
 - **Password rotation:** to rotate the database password, update `DATABASE_URL` and `DIRECT_URL` everywhere and redeploy. If you use the dedicated `prisma` user, rotate it with `alter user prisma with password '...'`.

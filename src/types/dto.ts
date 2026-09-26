@@ -195,6 +195,7 @@ export interface DuplicateCandidateDTO {
 
 export interface DashboardDTO {
   currency: string;
+  timezone: string;
   today: string;
   cashBalance: string | null;
   cashAccounts: { id: string; name: string; balance: string }[];
@@ -209,4 +210,68 @@ export interface DashboardDTO {
   paymentBreakdown: { method: PaymentMethodValue; amount: number }[];
   monthly: { month: string; expense: number; income: number }[];
   recent: EntryDTO[];
+}
+
+// ─── Phase 4: reports & audit ──────────────────────────────────────────────
+
+export type ReportColumnKind = "text" | "date" | "money" | "number" | "percent" | "duration";
+
+export interface ReportColumn {
+  key: string;
+  label: string;
+  kind: ReportColumnKind;
+}
+
+export type ReportCell = string | number | null;
+
+/** A filter that shaped the data ("Category: Travel") — printed on every export. */
+export interface ReportFilter {
+  label: string;
+  value: string;
+}
+
+/** Generic tabular report — rendered on screen and serialised by every exporter. */
+export interface ReportDTO {
+  type: string;
+  title: string;
+  subtitle: string;
+  currency: string;
+  filters: ReportFilter[];
+  columns: ReportColumn[];
+  rows: Record<string, ReportCell>[];
+  totals: Record<string, ReportCell> | null;
+  /** Column to plot for time-series reports (optional). */
+  chart: { xKey: string; yKey: string } | null;
+  generatedAt: string;
+}
+
+// ─── Phase 6: exports ──────────────────────────────────────────────────────
+
+export interface SheetsConnectionDTO {
+  /** The server has a Google service account configured. */
+  configured: boolean;
+  /** Share the spreadsheet with this address (Editor) so Kosh can write to it. */
+  serviceAccountEmail: string | null;
+  spreadsheetId: string | null;
+  spreadsheetUrl: string | null;
+}
+
+export interface SheetsExportDTO {
+  /** Link straight to the new tab. */
+  url: string;
+  sheetTitle: string;
+  rows: number;
+}
+
+export interface AuditLogDTO {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  user: { id: string; fullName: string; username: string } | null;
+  oldValues: unknown;
+  newValues: unknown;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
 }

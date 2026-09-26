@@ -46,6 +46,7 @@ export async function getDashboard(auth: AuthContext): Promise<DashboardDTO> {
   if (!canReadEntries) {
     return {
       currency: settings.currency,
+      timezone: settings.timezone,
       today,
       cashBalance,
       cashAccounts: accounts.map((a) => ({ id: a.id, name: a.name, balance: money(a.currentBalance) })),
@@ -143,6 +144,7 @@ export async function getDashboard(auth: AuthContext): Promise<DashboardDTO> {
 
   return {
     currency: settings.currency,
+    timezone: settings.timezone,
     today,
     cashBalance,
     cashAccounts: accounts.map((a) => ({ id: a.id, name: a.name, balance: money(a.currentBalance) })),

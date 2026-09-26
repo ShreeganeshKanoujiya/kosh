@@ -1,8 +1,9 @@
 import { AlertCircle, Paperclip } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { auditLabel } from "@/config/audit";
 import { ENTRY_TYPE_LABELS, PAYMENT_METHOD_LABELS, SOURCE_LABELS } from "@/config/entries";
 import { formatDateTime } from "@/lib/format";
-import type { EntryDTO } from "@/types/dto";
+import type { AuditLogDTO, EntryDTO } from "@/types/dto";
 import { EntryActions } from "./entry-actions";
 import { EntryStatusBadge } from "./entry-status-badge";
 import { Money } from "./money";
@@ -30,10 +31,21 @@ function Row({ label, value, mono }: { label: string; value: React.ReactNode; mo
 }
 
 /** Financial detail view — hero amount, grouped facts, timeline and the allowed actions. */
-export function EntryDetail({ entry }: { entry: EntryDTO }) {
+export function EntryDetail({ entry, history = [] }: { entry: EntryDTO; history?: AuditLogDTO[] }) {
   const title = entry.merchantName ?? entry.description ?? entry.category?.name ?? ENTRY_TYPE_LABELS[entry.type];
 
-  const timeline = [
+  // Prefer the audit trail (it includes edits and re-submissions); fall back to the status fields.
+  const fromAudit = [...history].reverse().map((h) => {
+    const values = (h.newValues ?? {}) as { autoApproved?: boolean; reason?: string };
+    const label =
+      h.action === "transaction.approved" && values.autoApproved
+        ? "Recorded (approval not required)"
+        : h.action === "transaction.rejected" && values.reason
+          ? `Rejected — “${values.reason}”`
+          : auditLabel(h.action);
+    return { label, by: h.user?.fullName ?? "", at: h.createdAt };
+  });
+  const fromFields = [
     { label: "Created", by: entry.createdBy.fullName, at: entry.createdAt },
     entry.submittedAt && { label: "Submitted", by: entry.createdBy.fullName, at: entry.submittedAt },
     entry.verifiedAt && entry.verifiedBy && { label: "Verified", by: entry.verifiedBy.fullName, at: entry.verifiedAt },
@@ -44,6 +56,7 @@ export function EntryDetail({ entry }: { entry: EntryDTO }) {
     },
     entry.rejectedAt && entry.rejectedBy && { label: "Rejected", by: entry.rejectedBy.fullName, at: entry.rejectedAt },
   ].filter(Boolean) as { label: string; by: string; at: string }[];
+  const timeline = fromAudit.length ? fromAudit : fromFields;
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-6">
@@ -103,8 +116,8 @@ export function EntryDetail({ entry }: { entry: EntryDTO }) {
         <Card className="gap-4 p-5">
           <p className="text-card-title">Activity</p>
           <ol className="relative space-y-4 border-l pl-5">
-            {timeline.map((t) => (
-              <li key={t.label} className="relative">
+            {timeline.map((t, i) => (
+              <li key={`${t.label}-${i}`} className="relative">
                 <span className="absolute top-1.5 -left-[1.6rem] size-2.5 rounded-full border-2 border-card bg-primary" aria-hidden />
                 <p className="text-sm font-medium">{t.label}</p>
                 <p className="text-xs text-muted-foreground">

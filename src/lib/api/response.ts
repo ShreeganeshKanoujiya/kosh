@@ -14,6 +14,19 @@ export function created<T>(data: T, message?: string) {
   return ok(data, { message, status: 201 });
 }
 
+/** A file download (exports). Failures still answer with the JSON error envelope. */
+export function file(f: { body: Uint8Array<ArrayBuffer>; contentType: string; filename: string }) {
+  return new NextResponse(f.body, {
+    status: 200,
+    headers: {
+      ...NO_STORE,
+      "Content-Type": f.contentType,
+      "Content-Length": String(f.body.byteLength),
+      "Content-Disposition": `attachment; filename="${f.filename.replace(/[^\w.-]/g, "_")}"`,
+    },
+  });
+}
+
 export function fail(error: Pick<AppError, "code" | "message" | "status" | "details">) {
   const body: ApiErrorBody = {
     success: false,

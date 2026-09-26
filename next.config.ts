@@ -25,8 +25,17 @@ const securityHeaders = [
   ...(isDev ? [] : [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]),
 ];
 
+// PDF exports read Inter's TTFs from disk at runtime (for the ₹ glyph); make sure deployments ship them.
+const pdfFonts = ["./node_modules/@expo-google-fonts/inter/400Regular/*.ttf", "./node_modules/@expo-google-fonts/inter/600SemiBold/*.ttf"];
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // pdfkit loads font data with Node's fs at runtime — load it natively instead of bundling it.
+  serverExternalPackages: ["pdfkit"],
+  outputFileTracingIncludes: {
+    "/api/reports/export": pdfFonts,
+    "/api/transactions/export": pdfFonts,
+  },
   experimental: {
     // Enables forbidden() / unauthorized() and their 403 / 401 boundary files.
     authInterrupts: true,

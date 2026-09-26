@@ -8,7 +8,9 @@ export default async function SettingsLayout({ children }: { children: React.Rea
     { href: "/settings", label: "Profile" },
     { href: "/settings/security", label: "Security" },
     ...(auth.permissions.has("company.read") ? [{ href: "/settings/company", label: "Company" }] : []),
+    ...(auth.permissions.has("cash_accounts.read") ? [{ href: "/settings/cash-accounts", label: "Cash accounts" }] : []),
     ...(auth.permissions.has("roles.read") ? [{ href: "/settings/roles", label: "Roles & permissions" }] : []),
+    ...(auth.permissions.has("audit_logs.read") ? [{ href: "/settings/audit-log", label: "Audit log" }] : []),
   ];
 
   return (
