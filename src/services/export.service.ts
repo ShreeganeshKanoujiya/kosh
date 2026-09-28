@@ -22,7 +22,7 @@ import { buildReport, describeFilters } from "./report.service";
 /** One export is capped so memory and PDF rendering time stay bounded; beyond this, narrow the filters. */
 export const EXPORT_MAX_ROWS = 10_000;
 
-/** The column set the spec asks exports (and Google Sheets) to preserve, plus a few accounting extras. */
+/** The column set the spec asks exports to preserve, plus a few accounting extras. */
 const TRANSACTION_COLUMNS: ReportColumn[] = [
   { key: "entryDate", label: "Date", kind: "date" },
   { key: "entryTime", label: "Time", kind: "text" },
@@ -115,7 +115,7 @@ export function limitExports(auth: AuthContext) {
 export function recordExport(
   auth: AuthContext,
   action: AuditAction,
-  details: { source: ExportSource; format: ExportFormat | "google_sheets"; table: ReportDTO; extra?: Record<string, string | number | null> },
+  details: { source: ExportSource; format: ExportFormat; table: ReportDTO; extra?: Record<string, string | number | null> },
   meta: RequestMeta,
 ) {
   return recordAudit({

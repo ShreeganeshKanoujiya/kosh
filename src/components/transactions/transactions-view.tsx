@@ -29,15 +29,7 @@ const SORTS = [
   { value: "amount_asc", label: "Lowest amount" },
 ];
 
-export function TransactionsView({
-  initialQuery,
-  initialData,
-  sheetsEnabled,
-}: {
-  initialQuery: EntryQuery;
-  initialData: EntryListDTO;
-  sheetsEnabled: boolean;
-}) {
+export function TransactionsView({ initialQuery, initialData }: { initialQuery: EntryQuery; initialData: EntryListDTO }) {
   const me = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -84,7 +76,7 @@ export function TransactionsView({
         title="Transactions"
         description="Every petty cash entry, newest first."
         actions={
-          me.can("reports.export") && (data?.total ?? 0) > 0 && <ExportMenu source="transactions" query={exportQuery} sheetsEnabled={sheetsEnabled} />
+          me.can("reports.export") && (data?.total ?? 0) > 0 && <ExportMenu source="transactions" query={exportQuery}/>
         }
       />
 
@@ -127,7 +119,7 @@ export function TransactionsView({
               aria-pressed={active}
               onClick={() => choosePreset(p.value)}
               className={cn(
-                "h-9 shrink-0 rounded-full border px-4 text-sm font-medium transition-colors",
+                "h-11 shrink-0 rounded-full border px-4 text-sm font-medium transition-colors pointer-fine:md:h-9",
                 active ? "border-primary bg-accent text-accent-foreground" : "bg-card text-muted-foreground hover:text-foreground",
               )}
             >
@@ -136,9 +128,9 @@ export function TransactionsView({
           );
         })}
         {customRange && (
-          <span className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full border border-primary bg-accent pr-1 pl-4 text-sm font-medium text-accent-foreground">
+          <span className="inline-flex h-11 shrink-0 items-center gap-1 rounded-full border border-primary pointer-fine:md:h-9 bg-accent pr-1 pl-4 text-sm font-medium text-accent-foreground">
             {query.from ? formatDate(query.from) : "…"} – {query.to ? formatDate(query.to) : "…"}
-            <button type="button" aria-label="Clear custom range" onClick={() => choosePreset(null)} className="inline-flex size-7 items-center justify-center rounded-full hover:bg-background/60">
+            <button type="button" aria-label="Clear custom range" onClick={() => choosePreset(null)} className="touch-hitbox relative inline-flex size-7 items-center justify-center rounded-full hover:bg-background/60">
               <X className="size-3.5" />
             </button>
           </span>

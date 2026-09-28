@@ -21,7 +21,7 @@ export function PageHeader({
         {back && (
           <Link
             href={back.href}
-            className="-ml-1 mb-1 inline-flex min-h-9 items-center gap-0.5 text-sm font-medium text-primary hover:underline"
+            className="-ml-1 mb-1 inline-flex min-h-11 items-center gap-0.5 text-sm font-medium text-primary hover:underline pointer-fine:md:min-h-9"
           >
             <ChevronLeft className="size-4" aria-hidden />
             {back.label}

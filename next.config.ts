@@ -28,20 +28,36 @@ const securityHeaders = [
 // PDF exports read Inter's TTFs from disk at runtime (for the ₹ glyph); make sure deployments ship them.
 const pdfFonts = ["./node_modules/@expo-google-fonts/inter/400Regular/*.ttf", "./node_modules/@expo-google-fonts/inter/600SemiBold/*.ttf"];
 
+// UPI screenshot OCR: Tesseract spawns its worker script by file path (invisible to tracing),
+// loads a WebAssembly core, and reads the English model from disk.
+const tesseractFiles = [
+  "./node_modules/tesseract.js/src/**/*",
+  "./node_modules/tesseract.js-core/tesseract-core-*lstm*",
+  "./node_modules/tesseract.js-core/package.json",
+  "./node_modules/@tesseract.js-data/eng/4.0.0_best_int/*",
+  "./node_modules/{bmp-js,is-url,node-fetch,regenerator-runtime,wasm-feature-detect,zlibjs}/**/*",
+];
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  // pdfkit loads font data with Node's fs at runtime — load it natively instead of bundling it.
-  serverExternalPackages: ["pdfkit"],
+  // Loaded natively instead of bundled: pdfkit and tesseract.js read files at runtime; nodemailer is Node-only.
+  serverExternalPackages: ["pdfkit", "nodemailer", "tesseract.js"],
+  allowedDevOrigins: ['192.168.0.191'],
   outputFileTracingIncludes: {
     "/api/reports/export": pdfFonts,
     "/api/transactions/export": pdfFonts,
+    "/api/ocr/upi": tesseractFiles,
   },
   experimental: {
     // Enables forbidden() / unauthorized() and their 403 / 401 boundary files.
     authInterrupts: true,
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      // Attachment files set their own, stricter policy per file type (see lib/storage/disk.ts).
+      { source: "/:path((?!api/attachments/[^/]+/file$).*)", headers: securityHeaders },
+      { source: "/api/attachments/:id/file", headers: securityHeaders.filter((h) => h.key !== "Content-Security-Policy") },
+    ];
   },
 };
 

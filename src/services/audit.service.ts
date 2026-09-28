@@ -51,8 +51,6 @@ export const AUDIT_ACTIONS = {
   attachmentUploaded: "attachment.uploaded",
   attachmentDeleted: "attachment.deleted",
   reportExported: "report.exported",
-  googleSheetsExported: "google_sheets.exported",
-  googleSheetsSynced: "google_sheets.synced",
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

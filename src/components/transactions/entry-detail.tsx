@@ -1,10 +1,11 @@
-import { AlertCircle, Paperclip } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { auditLabel } from "@/config/audit";
 import { ENTRY_TYPE_LABELS, PAYMENT_METHOD_LABELS, SOURCE_LABELS } from "@/config/entries";
 import { formatDateTime } from "@/lib/format";
 import type { AuditLogDTO, EntryDTO } from "@/types/dto";
 import { EntryActions } from "./entry-actions";
+import { EntryAttachments } from "./entry-attachments";
 import { EntryStatusBadge } from "./entry-status-badge";
 import { Money } from "./money";
 
@@ -99,17 +100,8 @@ export function EntryDetail({ entry, history = [] }: { entry: EntryDTO; history?
           </dl>
         </Card>
 
-        <Card className="flex-row items-center gap-3 px-5 py-4">
-          <span className="inline-flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-            <Paperclip className="size-4" aria-hidden />
-          </span>
-          <div className="flex-1">
-            <p className="text-sm font-medium">Receipt</p>
-            <p className="text-caption">
-              {entry.attachmentCount ? `${entry.attachmentCount} attached` : "No receipt attached"}
-            </p>
-          </div>
-        </Card>
+        {/* Keyed on version so a server refresh after an edit resets its local list. */}
+        <EntryAttachments key={`${entry.id}-${entry.attachments.map((a) => a.id).join()}`} entry={entry} />
       </div>
 
       <div className="space-y-4">

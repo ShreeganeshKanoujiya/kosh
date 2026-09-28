@@ -23,7 +23,7 @@ export function SettingsNav({ items }: { items: SettingsNavItem[] }) {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-10 items-center rounded-full px-4 text-sm font-medium whitespace-nowrap transition-colors lg:rounded-lg lg:px-3",
+                  "flex min-h-11 items-center rounded-full px-4 pointer-fine:md:min-h-10 text-sm font-medium whitespace-nowrap transition-colors lg:rounded-lg lg:px-3",
                   active ? "bg-card text-foreground shadow-xs ring-1 ring-border lg:bg-accent lg:text-accent-foreground lg:shadow-none lg:ring-0" : "text-muted-foreground hover:text-foreground lg:hover:bg-muted",
                 )}
               >

@@ -3,6 +3,7 @@
 import { CheckCircle2, Paperclip, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { AttachmentTiles } from "@/components/attachments/attachment-tiles";
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { EntryActions } from "@/components/transactions/entry-actions";
@@ -57,8 +58,10 @@ function ApprovalCard({ entry }: { entry: EntryDTO }) {
         </div>
       </dl>
       {entry.description && entry.merchantName && <p className="text-caption line-clamp-2">{entry.description}</p>}
+      {/* The original screenshot / bill, one tap away while reviewing. */}
+      {entry.attachments.length > 0 && <AttachmentTiles attachments={entry.attachments} compact />}
       <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
-        <Link href={`/transactions/${entry.id}`} className="text-sm font-medium text-primary hover:underline">
+        <Link href={`/transactions/${entry.id}`} className="touch-hitbox relative text-sm font-medium text-primary hover:underline">
           {entry.entryNumber}
         </Link>
         {mine ? <p className="text-meta">Awaiting another reviewer</p> : <EntryActions entry={entry} />}
@@ -92,7 +95,7 @@ export function ApprovalsView({ initialData }: { initialData: EntryListDTO }) {
             aria-selected={tab === value}
             onClick={() => setTab(value)}
             className={cn(
-              "flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-medium text-muted-foreground md:h-9",
+              "flex h-11 items-center gap-2 rounded-lg px-4 text-sm font-medium text-muted-foreground pointer-fine:md:h-9",
               tab === value && "bg-card text-foreground shadow-xs",
             )}
           >

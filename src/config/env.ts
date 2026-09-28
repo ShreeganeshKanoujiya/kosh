@@ -15,15 +15,26 @@ const envSchema = z
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(7),
     SESSION_MAX_AGE_DAYS: z.coerce.number().int().min(1).max(365).default(30),
     DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
-    RESEND_API_KEY: z.string().optional(),
+    // Optional SMTP server for password-reset emails (sent with Nodemailer).
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+    /** TLS from the first byte. Defaults to true on port 465; otherwise STARTTLS is used. */
+    SMTP_SECURE: z.stringbool().optional(),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASS: z.string().optional(),
     MAIL_FROM: z.string().optional(),
-    // Optional: Google service account for "Export to Google Sheets". Both or neither.
-    GOOGLE_SERVICE_ACCOUNT_EMAIL: z.string().optional(),
-    GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: z.string().optional(),
+    // Receipts and UPI screenshots. Supabase Storage when configured; otherwise files go to
+    // UPLOAD_DIR on local disk (defaults to .data/uploads in development, off in production).
+    SUPABASE_URL: z.union([z.literal(""), z.url()]).optional(),
+    SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+    SUPABASE_STORAGE_BUCKET: z.string().min(1).default("attachments"),
+    UPLOAD_DIR: z.string().optional(),
   })
-  .refine((e) => !e.GOOGLE_SERVICE_ACCOUNT_EMAIL === !e.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY, {
-    path: ["GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY"],
-    message: "Set both GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY, or neither",
+  .refine((e) => !e.SMTP_USER === !e.SMTP_PASS, { path: ["SMTP_PASS"], message: "Set both SMTP_USER and SMTP_PASS, or neither" })
+  .refine((e) => !e.SMTP_HOST || e.MAIL_FROM, { path: ["MAIL_FROM"], message: "MAIL_FROM is required when SMTP_HOST is set" })
+  .refine((e) => !e.SUPABASE_URL === !e.SUPABASE_SERVICE_ROLE_KEY, {
+    path: ["SUPABASE_SERVICE_ROLE_KEY"],
+    message: "Set both SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, or neither",
   });
 
 export type Env = z.infer<typeof envSchema>;

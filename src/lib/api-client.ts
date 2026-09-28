@@ -23,6 +23,7 @@ export class ApiClientError extends Error {
 
 interface RequestOptions {
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+  /** JSON-encoded, unless it's FormData (file uploads), which the browser encodes itself. */
   body?: unknown;
   signal?: AbortSignal;
 }
@@ -47,11 +48,12 @@ function toLogin() {
 }
 
 async function send(path: string, options: RequestOptions) {
+  const isForm = options.body instanceof FormData;
   return fetch(path, {
     method: options.method ?? "GET",
     credentials: "same-origin",
-    headers: options.body !== undefined ? { "Content-Type": "application/json" } : undefined,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    headers: options.body !== undefined && !isForm ? { "Content-Type": "application/json" } : undefined,
+    body: options.body === undefined ? undefined : isForm ? (options.body as FormData) : JSON.stringify(options.body),
     signal: options.signal,
   });
 }

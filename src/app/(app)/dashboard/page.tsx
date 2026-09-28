@@ -139,7 +139,7 @@ export default async function DashboardPage() {
               <h2 id="recent-heading" className="text-section-title">
                 Recent transactions
               </h2>
-              <Link href="/transactions" className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-primary hover:underline">
+              <Link href="/transactions" className="inline-flex min-h-11 items-center gap-1 pointer-fine:md:min-h-10 text-sm font-medium text-primary hover:underline">
                 View all <ArrowRight className="size-4" aria-hidden />
               </Link>
             </div>

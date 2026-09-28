@@ -8,7 +8,7 @@ export interface ExportMeta {
   generatedAt: string;
 }
 
-/** The lines under the title: range, filters, provenance. Shared by Excel, PDF and Google Sheets. */
+/** The lines under the title: range, filters, provenance. Shared by Excel and PDF. */
 export function headingLines(report: ReportDTO, meta: ExportMeta): string[] {
   return [
     report.subtitle,
@@ -19,7 +19,7 @@ export function headingLines(report: ReportDTO, meta: ExportMeta): string[] {
 
 /**
  * A report cell resolved to a real type, shared by the machine-readable formats
- * (CSV, Excel, Google Sheets) so numbers stay numbers and dates stay dates.
+ * (CSV, Excel) so numbers stay numbers and dates stay dates.
  */
 export type TypedCell =
   | { t: "empty" }
@@ -69,9 +69,6 @@ export function columnHeader(column: ReportColumn, currency: string) {
 
 /** Numeric columns are right-aligned in every format. */
 export const isNumericKind = (kind: ReportColumnKind) => kind === "money" || kind === "number" || kind === "percent" || kind === "duration";
-
-/** Excel / Google Sheets serial day number (days since 1899-12-30). */
-export const toSerialDay = (d: Date) => d.getTime() / 86_400_000 + 25_569;
 
 /** "report title" → "report-title", safe for filenames and sheet names. */
 export function slug(text: string) {

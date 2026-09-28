@@ -34,15 +34,7 @@ const PRESETS: Preset[] = [
   { key: "this_fy", label: "This financial year", range: (t, fy) => ({ from: startOfFinancialYear(t, fy), to: t }) },
 ];
 
-export function ReportsView({
-  today,
-  financialYearStartMonth,
-  sheetsEnabled,
-}: {
-  today: string;
-  financialYearStartMonth: number;
-  sheetsEnabled: boolean;
-}) {
+export function ReportsView({ today, financialYearStartMonth }: { today: string; financialYearStartMonth: number }) {
   const me = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -86,7 +78,7 @@ export function ReportsView({
       <PageHeader
         title="Reports"
         description="Summaries of approved spend by day, category, person and more."
-        actions={me.can("reports.export") && data && data.rows.length > 0 && <ExportMenu source="report" query={search} sheetsEnabled={sheetsEnabled} />}
+        actions={me.can("reports.export") && data && data.rows.length > 0 && <ExportMenu source="report" query={search}/>}
       />
 
       <div className="grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
@@ -102,7 +94,7 @@ export function ReportsView({
                     aria-current={active ? "page" : undefined}
                     onClick={() => setQ({ type: t })}
                     className={cn(
-                      "w-full rounded-full border px-4 py-2 text-left text-sm font-medium whitespace-nowrap transition-colors lg:rounded-lg lg:border-0 lg:px-3 lg:py-2.5 lg:whitespace-normal",
+                      "min-h-11 w-full rounded-full border px-4 py-2 text-left pointer-fine:md:min-h-9 text-sm font-medium whitespace-nowrap transition-colors lg:rounded-lg lg:border-0 lg:px-3 lg:py-2.5 lg:whitespace-normal",
                       active ? "border-primary bg-accent text-accent-foreground" : "bg-card text-muted-foreground hover:text-foreground lg:bg-transparent lg:hover:bg-muted",
                     )}
                   >
@@ -126,7 +118,7 @@ export function ReportsView({
                   aria-pressed={activePreset === p.key}
                   onClick={() => setQ(p.range(today, financialYearStartMonth))}
                   className={cn(
-                    "h-9 shrink-0 rounded-full border px-4 text-sm font-medium transition-colors",
+                    "h-11 shrink-0 rounded-full border px-4 text-sm font-medium transition-colors pointer-fine:md:h-9",
                     activePreset === p.key ? "border-primary bg-accent text-accent-foreground" : "bg-card text-muted-foreground hover:text-foreground",
                   )}
                 >

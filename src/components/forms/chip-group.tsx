@@ -59,8 +59,8 @@ export function ChipGroup<V extends string>({
           className={cn(
             "inline-flex shrink-0 items-center justify-center gap-1.5 text-sm font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40",
             segmented
-              ? "h-10 rounded-lg px-3 text-muted-foreground data-[state=checked]:bg-card data-[state=checked]:text-foreground data-[state=checked]:shadow-xs md:h-9"
-              : "h-10 rounded-full border bg-card px-4 text-foreground hover:bg-muted data-[state=checked]:border-primary data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground md:h-9",
+              ? "h-11 rounded-lg px-3 text-muted-foreground data-[state=checked]:bg-card data-[state=checked]:text-foreground data-[state=checked]:shadow-xs pointer-fine:md:h-9"
+              : "h-11 rounded-full border bg-card px-4 text-foreground hover:bg-muted data-[state=checked]:border-primary data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground pointer-fine:md:h-9",
             invalid && !segmented && "border-destructive/50",
           )}
         >

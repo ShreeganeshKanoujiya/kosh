@@ -36,7 +36,7 @@ export function TopBar() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search entries, merchants, UPI IDs…"
             aria-label="Search transactions"
-            className="h-10 rounded-full border-transparent bg-muted pl-9 focus-visible:border-ring focus-visible:bg-card"
+            className="h-11 rounded-full border-transparent bg-muted pl-9 pointer-fine:h-10 focus-visible:border-ring focus-visible:bg-card"
           />
         </form>
       ) : null}

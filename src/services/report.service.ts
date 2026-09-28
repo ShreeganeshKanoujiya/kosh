@@ -107,7 +107,7 @@ export async function describeFilters(companyId: string, f: FilterSubject, curre
 
 /**
  * Build any report as a generic table. The same ReportDTO feeds the screen,
- * CSV / Excel / PDF exports and Google Sheets — so exports always match what users see.
+ * CSV / Excel / PDF exports — so exports always match what users see.
  */
 export async function buildReport(auth: AuthContext, q: ReportQuery): Promise<ReportDTO> {
   assertPermission(auth, "reports.read");

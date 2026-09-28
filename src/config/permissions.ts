@@ -36,9 +36,6 @@ export const PERMISSIONS = {
   "reports.read": { group: "reports", description: "View reports" },
   "reports.export": { group: "reports", description: "Export reports (CSV, Excel, PDF)" },
 
-  "google_sheets.export": { group: "google_sheets", description: "Export to Google Sheets" },
-  "google_sheets.sync": { group: "google_sheets", description: "Sync to Google Sheets" },
-
   "audit_logs.read": { group: "audit_logs", description: "View the audit trail" },
   "settings.read": { group: "settings", description: "View company settings" },
   "settings.update": { group: "settings", description: "Change company settings" },
@@ -56,7 +53,6 @@ export const PERMISSION_GROUP_LABELS: Record<string, string> = {
   categories: "Categories",
   cash_accounts: "Cash accounts",
   reports: "Reports",
-  google_sheets: "Google Sheets",
   audit_logs: "Audit log",
   settings: "Settings",
 };
@@ -99,7 +95,6 @@ export const SYSTEM_ROLES: Record<
       "cash_accounts.read",
       "reports.read",
       "reports.export",
-      "google_sheets.export",
       "audit_logs.read",
       "settings.read",
     ],

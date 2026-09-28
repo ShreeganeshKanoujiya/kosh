@@ -88,7 +88,7 @@ export function ForgotPasswordForm() {
         Send reset link
       </Button>
       <p className="text-center text-sm">
-        <Link href="/login" className="font-medium text-primary hover:underline">
+        <Link href="/login" className="touch-hitbox relative font-medium text-primary hover:underline">
           Back to log in
         </Link>
       </p>

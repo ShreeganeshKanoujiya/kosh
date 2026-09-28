@@ -3,6 +3,7 @@ import { Prisma } from "@/generated/prisma/client";
 import type { EntryStatus } from "@/generated/prisma/enums";
 import { ymdToDate } from "@/lib/dates";
 import { prisma, type DbClient } from "@/lib/db/prisma";
+import { attachmentSelect } from "./attachment.repository";
 import type { ListEntriesQuery } from "@/validators/entry.schema";
 
 const userRef = { select: { id: true, fullName: true, username: true } } as const;
@@ -14,7 +15,7 @@ export const entryInclude = {
   verifiedBy: userRef,
   approvedBy: userRef,
   rejectedBy: userRef,
-  _count: { select: { attachments: true } },
+  attachments: { select: attachmentSelect, orderBy: { createdAt: "asc" } },
 } as const satisfies Prisma.PettyCashEntryInclude;
 
 export type EntryRow = Prisma.PettyCashEntryGetPayload<{ include: typeof entryInclude }>;

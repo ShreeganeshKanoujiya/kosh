@@ -20,6 +20,7 @@ import type {
   rejectEntrySchema,
   updateEntrySchema,
 } from "@/validators/entry.schema";
+import { linkAttachments, toAttachmentDTO } from "./attachment.service";
 import { AUDIT_ACTIONS, recordAudit, type AuditAction } from "./audit.service";
 import { allowedEntryActions, assertEntryAction } from "./entry-policy";
 import { notifyEntryEvent } from "./notification.service";
@@ -63,7 +64,8 @@ export function toEntryDTO(e: EntryRow, auth: AuthContext): EntryDTO {
     createdAt: e.createdAt.toISOString(),
     updatedAt: e.updatedAt.toISOString(),
     version: e.version,
-    attachmentCount: e._count.attachments,
+    attachmentCount: e.attachments.length,
+    attachments: e.attachments.map(toAttachmentDTO),
     allowedActions: allowedEntryActions(auth, e),
   };
 }
@@ -152,7 +154,7 @@ async function resolveFields(
   };
 }
 
-function toDuplicateDTO(d: Awaited<ReturnType<typeof entryRepository.findDuplicates>>[number]): DuplicateCandidateDTO {
+export function toDuplicateDTO(d: Awaited<ReturnType<typeof entryRepository.findDuplicates>>[number]): DuplicateCandidateDTO {
   return {
     id: d.id,
     entryNumber: d.entryNumber,
@@ -166,9 +168,16 @@ function toDuplicateDTO(d: Awaited<ReturnType<typeof entryRepository.findDuplica
 
 // ─── Submit / approval core (always inside a DB transaction) ───────────────
 
-async function submitInTx(auth: AuthContext, entry: EntryRow, settings: Settings, meta: RequestMeta, tx: Prisma.TransactionClient) {
+async function submitInTx(
+  auth: AuthContext,
+  entry: EntryRow,
+  settings: Settings,
+  meta: RequestMeta,
+  tx: Prisma.TransactionClient,
+  attachmentCount = entry.attachments.length,
+) {
   assertEntryAction(auth, entry, "submit");
-  if (settings.receiptRequired && entry.type === "expense" && entry._count.attachments === 0) {
+  if (settings.receiptRequired && entry.type === "expense" && attachmentCount === 0) {
     throw Errors.validation({ attachment: ["Attach a receipt before submitting"] }, "A receipt is required for expenses.");
   }
 
@@ -261,6 +270,8 @@ export async function createEntry(auth: AuthContext, input: z.output<typeof crea
       },
       tx,
     );
+    // Files uploaded on the form (or the scanned screenshot) move onto the entry in the same transaction.
+    const attachments = await linkAttachments(auth, input.attachmentIds, created.id, tx);
     await recordAudit(
       {
         companyId: auth.companyId,
@@ -268,12 +279,18 @@ export async function createEntry(auth: AuthContext, input: z.output<typeof crea
         action: AUDIT_ACTIONS.transactionCreated,
         entityType: "transaction",
         entityId: created.id,
-        newValues: { entryNumber: created.entryNumber, ...auditSnapshot(created), duplicateConfirmed: input.allowDuplicate || undefined },
+        newValues: {
+          entryNumber: created.entryNumber,
+          ...auditSnapshot(created),
+          source: input.source,
+          attachments: attachments || undefined,
+          duplicateConfirmed: input.allowDuplicate || undefined,
+        },
         meta,
       },
       tx,
     );
-    if (input.submit) submittedAs = await submitInTx(auth, created, settings, meta, tx);
+    if (input.submit) submittedAs = await submitInTx(auth, created, settings, meta, tx, attachments);
     return created.id;
   });
 

@@ -35,7 +35,7 @@ export function ThemeSwitch({ className }: { className?: string }) {
             aria-checked={active}
             onClick={() => setTheme(value)}
             className={cn(
-              "flex h-10 items-center justify-center gap-1.5 rounded-lg text-sm font-medium text-muted-foreground transition-colors md:h-8",
+              "flex h-11 items-center justify-center gap-1.5 rounded-lg text-sm font-medium text-muted-foreground transition-colors pointer-fine:md:h-8",
               active && "bg-card text-foreground shadow-xs",
             )}
           >

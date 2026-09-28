@@ -41,7 +41,7 @@ export function ChartCard({
                 aria-checked={view === v}
                 onClick={() => setView(v)}
                 className={cn(
-                  "h-8 rounded-md px-2.5 capitalize text-muted-foreground transition-colors md:h-7",
+                  "touch-hitbox relative h-8 rounded-md px-2.5 capitalize text-muted-foreground transition-colors pointer-fine:md:h-7",
                   view === v && "bg-card text-foreground shadow-xs",
                 )}
               >

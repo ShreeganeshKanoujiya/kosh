@@ -33,7 +33,7 @@ export function UserMenu({ variant = "avatar" }: { variant?: "avatar" | "sidebar
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "flex items-center gap-3 rounded-xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+          "touch-hitbox relative flex items-center gap-3 rounded-xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
           variant === "sidebar" ? "w-full p-2 hover:bg-sidebar-accent" : "rounded-full p-0.5",
         )}
         aria-label="Account menu"

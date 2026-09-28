@@ -39,8 +39,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "attachment.uploaded": "Attachment uploaded",
   "attachment.deleted": "Attachment removed",
   "report.exported": "Report exported",
+  // Google Sheets export was removed; kept so older audit entries still read well.
   "google_sheets.exported": "Exported to Google Sheets",
-  "google_sheets.synced": "Synced to Google Sheets",
 };
 
 export const AUDIT_ENTITY_LABELS: Record<string, string> = {
@@ -53,6 +53,7 @@ export const AUDIT_ENTITY_LABELS: Record<string, string> = {
   company_settings: "Settings",
   session: "Sessions",
   report: "Exports",
+  attachment: "Attachments",
 };
 
 export const auditLabel = (action: string) => AUDIT_ACTION_LABELS[action] ?? action;

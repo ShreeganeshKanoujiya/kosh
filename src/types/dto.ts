@@ -1,4 +1,6 @@
+import type { AttachmentKindValue } from "@/config/attachments";
 import type { PermissionKey } from "@/config/permissions";
+import type { UpiExtraction } from "@/lib/ocr/upi-parser";
 import type {
   EntryAction,
   EntrySourceValue,
@@ -163,8 +165,36 @@ export interface EntryDTO {
   updatedAt: string;
   version: number;
   attachmentCount: number;
+  attachments: AttachmentDTO[];
   /** Actions the current user may take right now — computed server-side. */
   allowedActions: EntryAction[];
+}
+
+export interface AttachmentDTO {
+  id: string;
+  kind: AttachmentKindValue;
+  /** Display name only (sanitised); the stored object name is random. */
+  fileName: string;
+  /** Detected from the file's bytes, not taken from the browser. */
+  fileType: string;
+  fileSize: number;
+  isImage: boolean;
+  /** Same-origin URL; the server checks access on every request. */
+  url: string;
+  uploadedBy: { id: string; fullName: string };
+  createdAt: string;
+}
+
+export interface UpiScanDTO {
+  /** The stored screenshot, not yet on any entry. Send its id in `attachmentIds` when saving. */
+  attachment: AttachmentDTO;
+  /** Null when nothing usable was read — `message` says why. */
+  extraction: UpiExtraction | null;
+  message: string | null;
+  /** Entries that already carry this exact image. */
+  sameScreenshot: { id: string; entryNumber: string }[];
+  /** Entries that look like the same payment (same UPI transaction ID, or amount + date + payee). */
+  duplicates: DuplicateCandidateDTO[];
 }
 
 export interface EntryListSummary {
@@ -243,24 +273,6 @@ export interface ReportDTO {
   /** Column to plot for time-series reports (optional). */
   chart: { xKey: string; yKey: string } | null;
   generatedAt: string;
-}
-
-// ─── Phase 6: exports ──────────────────────────────────────────────────────
-
-export interface SheetsConnectionDTO {
-  /** The server has a Google service account configured. */
-  configured: boolean;
-  /** Share the spreadsheet with this address (Editor) so Kosh can write to it. */
-  serviceAccountEmail: string | null;
-  spreadsheetId: string | null;
-  spreadsheetUrl: string | null;
-}
-
-export interface SheetsExportDTO {
-  /** Link straight to the new tab. */
-  url: string;
-  sheetTitle: string;
-  rows: number;
 }
 
 export interface AuditLogDTO {

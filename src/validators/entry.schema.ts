@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ATTACHMENTS_PER_ENTRY } from "@/config/attachments";
 import { ENTRY_SOURCES, ENTRY_STATUSES, ENTRY_TYPES, PAYMENT_METHODS } from "@/config/entries";
 import { idSchema, paginationSchema } from "./common";
 
@@ -67,6 +68,8 @@ export const createEntrySchema = z
     submit: z.boolean().default(false),
     /** Set after the user confirms a possible duplicate. */
     allowDuplicate: z.boolean().default(false),
+    /** Files uploaded before saving (receipts, the scanned screenshot); linked to the new entry. */
+    attachmentIds: z.array(idSchema).max(ATTACHMENTS_PER_ENTRY, `At most ${ATTACHMENTS_PER_ENTRY} attachments`).default([]),
   })
   .superRefine(refineEntry);
 export type CreateEntryInput = z.input<typeof createEntrySchema>;

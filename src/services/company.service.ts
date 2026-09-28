@@ -111,6 +111,7 @@ export async function getEntryFormSettings(auth: AuthContext) {
   const s = await settingsRepository.get(auth.companyId);
   return {
     approvalRequired: s.approvalRequired,
+    receiptRequired: s.receiptRequired,
     timezone: s.timezone,
     currency: s.currency,
     defaultCashAccountId: s.defaultCashAccountId,

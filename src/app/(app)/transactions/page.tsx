@@ -3,8 +3,6 @@ import { Suspense } from "react";
 import { TransactionsView } from "@/components/transactions/transactions-view";
 import { ENTRY_PAGE_SIZE as PAGE_SIZE } from "@/config/entries";
 import { requirePageAuth } from "@/lib/auth/session";
-import { settingsRepository } from "@/repositories/settings.repository";
-import { sheetsExportAvailable } from "@/services/google-sheets.service";
 import { listEntries } from "@/services/transaction.service";
 import { listEntriesQuerySchema } from "@/validators/entry.schema";
 
@@ -18,11 +16,11 @@ export default async function TransactionsPage({ searchParams }: PageProps<"/tra
   // Invalid params from a hand-edited URL fall back to the defaults instead of erroring.
   const parsed = listEntriesQuerySchema.safeParse({ pageSize: PAGE_SIZE, ...raw });
   const query = parsed.success ? parsed.data : listEntriesQuerySchema.parse({ pageSize: PAGE_SIZE });
-  const [initialData, settings] = await Promise.all([listEntries(auth, query), settingsRepository.get(auth.companyId)]);
+  const initialData = await listEntries(auth, query);
 
   return (
     <Suspense>
-      <TransactionsView initialQuery={raw} initialData={initialData} sheetsEnabled={sheetsExportAvailable(auth, settings)} />
+      <TransactionsView initialQuery={raw} initialData={initialData} />
     </Suspense>
   );
 }

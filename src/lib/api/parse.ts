@@ -23,6 +23,40 @@ export async function parseBody<S extends z.ZodType>(req: NextRequest, schema: S
   return validate(schema, raw);
 }
 
+export interface Upload {
+  bytes: Uint8Array;
+  /** Untrusted: for display only after sanitising. */
+  name: string;
+  /** The other (text) form fields. */
+  fields: Record<string, string>;
+}
+
+/** Read a multipart upload with one file in `file`. Size is checked before and after buffering. */
+export async function parseUpload(req: NextRequest, maxBytes: number): Promise<Upload> {
+  const contentType = req.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().startsWith("multipart/form-data")) {
+    throw Errors.badRequest("UNSUPPORTED_CONTENT_TYPE", "Expected a file upload.");
+  }
+  const tooLarge = () => Errors.validation({ file: [`The file is larger than ${Math.round(maxBytes / (1024 * 1024))} MB`] }, "That file is too large.");
+  if (Number(req.headers.get("content-length") ?? 0) > maxBytes + 64 * 1024) throw tooLarge();
+
+  let form: FormData;
+  try {
+    form = await req.formData();
+  } catch {
+    throw Errors.badRequest("INVALID_UPLOAD", "The upload couldn't be read. Please try again.");
+  }
+  const file = form.get("file");
+  if (!(file instanceof File) || file.size === 0) throw Errors.validation({ file: ["Choose a file to upload"] });
+  if (file.size > maxBytes) throw tooLarge();
+
+  const fields: Record<string, string> = {};
+  form.forEach((value, key) => {
+    if (typeof value === "string") fields[key] = value;
+  });
+  return { bytes: new Uint8Array(await file.arrayBuffer()), name: file.name, fields };
+}
+
 /** Parse and validate URL search params (single values only). */
 export function parseQuery<S extends z.ZodType>(req: NextRequest, schema: S): z.output<S> {
   const raw: Record<string, string> = {};

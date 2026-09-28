@@ -1,11 +1,12 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, Minus, Plus } from "lucide-react";
+import { AlertTriangle, ChevronDown, Minus, Plus, ScanLine } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
+import { AttachmentPicker } from "@/components/attachments/attachment-picker";
 import { ChipGroup } from "@/components/forms/chip-group";
 import { FormAlert } from "@/components/forms/form-alert";
 import { applyServerErrors } from "@/components/forms/form-utils";
@@ -15,18 +16,20 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { ENTRY_TYPE_LABELS, PAYMENT_METHOD_LABELS, PAYMENT_METHODS, type EntryTypeValue } from "@/config/entries";
+import { ENTRY_TYPE_LABELS, PAYMENT_METHOD_LABELS, PAYMENT_METHODS, type EntrySourceValue, type EntryTypeValue } from "@/config/entries";
 import { useEntryMutations } from "@/hooks/use-entries";
 import { ApiClientError, errorMessage } from "@/lib/api-client";
 import { hmInTimeZone, todayYmd } from "@/lib/dates";
 import { formatCurrency } from "@/lib/format";
+import { LOW_CONFIDENCE, type DetectedField, type UpiField } from "@/lib/ocr/upi-parser";
 import { cn } from "@/lib/utils";
-import type { CashAccountDTO, CategoryDTO, DuplicateCandidateDTO, EntryDTO } from "@/types/dto";
+import type { AttachmentDTO, CashAccountDTO, CategoryDTO, DuplicateCandidateDTO, EntryDTO } from "@/types/dto";
 import { createEntrySchema, type CreateEntryInput } from "@/validators/entry.schema";
 import { DuplicateDialog } from "./duplicate-dialog";
 
 export interface EntryFormSettings {
   approvalRequired: boolean;
+  receiptRequired: boolean;
   timezone: string;
   currency: string;
   defaultCashAccountId: string | null;
@@ -49,7 +52,9 @@ const FIELDS = [
   "cashAccountId",
 ] as const;
 
-function defaultsFor(entry: EntryDTO | undefined, settings: EntryFormSettings): CreateEntryInput {
+type FormValues = Omit<CreateEntryInput, "submit" | "allowDuplicate" | "source" | "attachmentIds">;
+
+function defaultsFor(entry: EntryDTO | undefined, settings: EntryFormSettings, prefill?: Partial<FormValues>): FormValues {
   if (entry) {
     const amount = Number(entry.amount);
     return {
@@ -83,7 +88,26 @@ function defaultsFor(entry: EntryDTO | undefined, settings: EntryFormSettings): 
     transactionId: "",
     referenceNumber: "",
     cashAccountId: settings.defaultCashAccountId ?? "",
+    ...prefill,
   };
+}
+
+/** What the scanner read for one field, and how sure it is. */
+function DetectedHint({ field }: { field: DetectedField }) {
+  const low = field.confidence < LOW_CONFIDENCE;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[0.6875rem] leading-none font-medium",
+        low ? "bg-warning/20 text-warning-foreground dark:text-warning" : "bg-success/10 text-success",
+      )}
+      title={low ? "Read with low confidence — please check" : "Read from the screenshot"}
+    >
+      {low ? <AlertTriangle className="size-3" aria-hidden /> : <ScanLine className="size-3" aria-hidden />}
+      {low ? `Check · ${field.confidence}%` : `${field.confidence}%`}
+      <span className="sr-only">{low ? " confidence, please check this value" : " confidence"}</span>
+    </span>
+  );
 }
 
 export function EntryForm({
@@ -93,6 +117,11 @@ export function EntryForm({
   settings,
   canAdjust,
   notice,
+  prefill,
+  detected,
+  source = "manual",
+  initialAttachments,
+  attachFirst,
 }: {
   /** Present = edit mode. */
   entry?: EntryDTO;
@@ -101,13 +130,24 @@ export function EntryForm({
   settings: EntryFormSettings;
   canAdjust: boolean;
   notice?: string;
+  /** New entry only: starting values (from a scanned screenshot). */
+  prefill?: Partial<FormValues>;
+  /** What the scanner read, per field — shown as confidence badges, low ones highlighted. */
+  detected?: Partial<Record<UpiField, DetectedField>>;
+  source?: EntrySourceValue;
+  /** New entry only: files already uploaded (the scanned screenshot). */
+  initialAttachments?: AttachmentDTO[];
+  /** Receipt-first flow: show the attachment area at the top. */
+  attachFirst?: boolean;
 }) {
   const router = useRouter();
   const { create, update, transition } = useEntryMutations();
   const [formError, setFormError] = useState<string | null>(null);
   const [duplicates, setDuplicates] = useState<DuplicateCandidateDTO[] | null>(null);
   const [pendingValues, setPendingValues] = useState<CreateEntryInput | null>(null);
-  const initial = defaultsFor(entry, settings);
+  const [attachments, setAttachments] = useState<AttachmentDTO[]>(entry?.attachments ?? initialAttachments ?? []);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const initial = defaultsFor(entry, settings, prefill);
   const [showMore, setShowMore] = useState(
     Boolean(initial.merchantName || initial.upiId || initial.transactionId || initial.referenceNumber),
   );
@@ -117,6 +157,17 @@ export function EntryForm({
   const [type, paymentMethod, amountText] = useWatch({ control, name: ["type", "paymentMethod", "amount"] });
   const errors = formState.errors;
 
+  // A scanned value stops asking to be checked once the user has looked at it and changed it.
+  const seen = (f: UpiField) => detected?.[f]?.value && !formState.dirtyFields[f] ? detected[f] : undefined;
+  const hint = (f: UpiField) => {
+    const d = seen(f);
+    return d ? <DetectedHint field={d} /> : null;
+  };
+  const check = (f: UpiField) => {
+    const d = seen(f);
+    return d && d.confidence < LOW_CONFIDENCE ? "border-warning ring-3 ring-warning/25" : undefined;
+  };
+
   // Keep a now-inactive category selectable on an entry that already uses it.
   const categoryOptions = [...categories.filter((c) => c.isActive)];
   if (entry?.category && !categoryOptions.some((c) => c.id === entry.category!.id)) {
@@ -125,6 +176,7 @@ export function EntryForm({
   const activeAccounts = cashAccounts.filter((a) => a.isActive || a.id === entry?.cashAccount.id);
   const canSubmit = !entry || entry.allowedActions.includes("submit");
   const submitLabel = settings.approvalRequired ? "Save & submit" : "Save";
+  const receiptNeeded = settings.receiptRequired && type === "expense";
 
   const typeOptions = (["expense", "income", "adjustment"] as EntryTypeValue[])
     .filter((t) => t !== "adjustment" || canAdjust || entry?.type === "adjustment")
@@ -132,10 +184,16 @@ export function EntryForm({
 
   async function persist(values: CreateEntryInput) {
     setFormError(null);
+    setAttachmentError(null);
+    if (values.submit && receiptNeeded && !attachments.length) {
+      setAttachmentError("Attach a receipt before submitting — or save as a draft for now.");
+      document.getElementById("attachments")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     try {
       if (entry) {
         // Only the editable fields go on an update (no create-only flags).
-        const fields = Object.fromEntries(FIELDS.map((k) => [k, values[k]])) as Omit<CreateEntryInput, "submit" | "allowDuplicate" | "source">;
+        const fields = Object.fromEntries(FIELDS.map((k) => [k, values[k]])) as FormValues;
         const { data } = await update.mutateAsync({
           id: entry.id,
           input: { ...fields, type: fields.type ?? entry.type, version: entry.version },
@@ -147,7 +205,7 @@ export function EntryForm({
         toast.success(values.submit ? "Transaction submitted ✓" : "Transaction updated ✓");
         router.replace(`/transactions/${result.id}`);
       } else {
-        const { data } = await create.mutateAsync(values);
+        const { data } = await create.mutateAsync({ ...values, source, attachmentIds: attachments.map((a) => a.id) });
         toast.success(data.status === "draft" ? "Draft saved ✓" : "Transaction created ✓", {
           description: `${data.entryNumber} · ${formatCurrency(Math.abs(Number(data.amount)), data.currency)}`,
           action: { label: "Add another", onClick: () => router.push("/transactions/new?mode=manual") },
@@ -165,6 +223,10 @@ export function EntryForm({
         toast.error(error.message, { action: { label: "Reload", onClick: () => router.refresh() } });
         return;
       }
+      if (error instanceof ApiClientError && (error.fieldErrors.attachment || error.fieldErrors.attachmentIds)) {
+        setAttachmentError((error.fieldErrors.attachment ?? error.fieldErrors.attachmentIds)[0]);
+        return;
+      }
       if (applyServerErrors(error, setError, FIELDS)) return;
       setFormError(errorMessage(error, "Unable to save transaction. Please try again."));
     }
@@ -175,12 +237,39 @@ export function EntryForm({
 
   const busy = formState.isSubmitting || create.isPending || update.isPending || transition.isPending;
 
+  const attachmentSection = (
+    <Field id="attachments" data-invalid={!!attachmentError} className="scroll-mt-24">
+      <FieldLabel>
+        Receipt &amp; attachments
+        {receiptNeeded ? (
+          <span className="font-normal text-muted-foreground">(required for expenses)</span>
+        ) : (
+          <span className="font-normal text-muted-foreground">(optional)</span>
+        )}
+      </FieldLabel>
+      <AttachmentPicker
+        attachments={attachments}
+        onChange={(next) => {
+          setAttachments(next);
+          setAttachmentError(null);
+        }}
+        entryId={entry?.id}
+        invalid={!!attachmentError}
+        emphasize={attachFirst}
+      />
+      {entry && <FieldDescription>Changes to attachments are saved straight away.</FieldDescription>}
+      {attachmentError && <FieldError>{attachmentError}</FieldError>}
+    </Field>
+  );
+
   return (
     <>
       <form onSubmit={save(canSubmit)} noValidate className="mx-auto max-w-2xl pb-24 md:pb-0">
         <Card className="gap-6 p-5 md:p-7">
           {notice && <FormAlert tone="info" message={notice} />}
           <FormAlert message={formError} />
+
+          {attachFirst && attachmentSection}
 
           <Controller
             control={control}
@@ -204,7 +293,7 @@ export function EntryForm({
             <FieldLabel htmlFor="amount" className="sr-only">
               Amount
             </FieldLabel>
-            <div className="flex items-baseline justify-center gap-1 py-2">
+            <div className={cn("flex items-baseline justify-center gap-1 rounded-2xl py-2 transition-shadow", check("amount"))}>
               <span className="text-3xl font-semibold text-muted-foreground" aria-hidden>
                 ₹
               </span>
@@ -214,12 +303,13 @@ export function EntryForm({
                 autoComplete="off"
                 placeholder="0"
                 aria-invalid={!!errors.amount}
-                autoFocus={!entry}
+                autoFocus={!entry && !prefill}
                 {...register("amount")}
                 style={{ width: `${Math.min(14, Math.max(1, String(amountText ?? "").length)) + 0.4}ch` }}
                 className="max-w-full bg-transparent text-5xl font-semibold tracking-tight tabular-nums outline-none placeholder:text-muted-foreground/40"
               />
             </div>
+            {hint("amount") && <div className="flex justify-center">{hint("amount")}</div>}
             {settings.maxExpenseLimit && type === "expense" && (
               <FieldDescription className="text-center">
                 Limit per expense: {formatCurrency(settings.maxExpenseLimit, settings.currency)}
@@ -295,30 +385,32 @@ export function EntryForm({
 
             <div className="grid grid-cols-2 gap-4">
               <Field data-invalid={!!errors.entryDate}>
-                <FieldLabel htmlFor="entryDate">Date</FieldLabel>
+                <FieldLabel htmlFor="entryDate">Date {hint("entryDate")}</FieldLabel>
                 <Input
                   id="entryDate"
                   type="date"
                   max={todayYmd(settings.timezone)}
                   aria-invalid={!!errors.entryDate}
+                  className={check("entryDate")}
                   {...register("entryDate")}
                 />
                 <FieldError errors={[errors.entryDate]} />
               </Field>
               <Field data-invalid={!!errors.entryTime}>
-                <FieldLabel htmlFor="entryTime">Time</FieldLabel>
-                <Input id="entryTime" type="time" aria-invalid={!!errors.entryTime} {...register("entryTime")} />
+                <FieldLabel htmlFor="entryTime">Time {hint("entryTime")}</FieldLabel>
+                <Input id="entryTime" type="time" aria-invalid={!!errors.entryTime} className={check("entryTime")} {...register("entryTime")} />
                 <FieldError errors={[errors.entryTime]} />
               </Field>
             </div>
 
             <Field data-invalid={!!errors.description}>
-              <FieldLabel htmlFor="description">Description</FieldLabel>
+              <FieldLabel htmlFor="description">Description {hint("description")}</FieldLabel>
               <Input
                 id="description"
                 placeholder={type === "income" ? "e.g. Petty cash top-up from bank" : "e.g. Printer paper, 2 reams"}
                 autoComplete="off"
                 aria-invalid={!!errors.description}
+                className={check("description")}
                 {...register("description")}
               />
               <FieldError errors={[errors.description]} />
@@ -342,26 +434,55 @@ export function EntryForm({
             {showMore && (
               <FieldGroup id="more-details" className="border-t p-4">
                 <Field data-invalid={!!errors.merchantName}>
-                  <FieldLabel htmlFor="merchantName">Merchant / paid to</FieldLabel>
-                  <Input id="merchantName" placeholder="ABC Stationery" autoComplete="off" aria-invalid={!!errors.merchantName} {...register("merchantName")} />
+                  <FieldLabel htmlFor="merchantName">Merchant / paid to {hint("merchantName")}</FieldLabel>
+                  <Input
+                    id="merchantName"
+                    placeholder="ABC Stationery"
+                    autoComplete="off"
+                    aria-invalid={!!errors.merchantName}
+                    className={check("merchantName")}
+                    {...register("merchantName")}
+                  />
                   <FieldError errors={[errors.merchantName]} />
                 </Field>
                 {(paymentMethod === "upi" || entry?.upiId) && (
                   <Field data-invalid={!!errors.upiId}>
-                    <FieldLabel htmlFor="upiId">UPI ID</FieldLabel>
-                    <Input id="upiId" placeholder="name@okaxis" autoCapitalize="none" autoComplete="off" spellCheck={false} aria-invalid={!!errors.upiId} {...register("upiId")} />
+                    <FieldLabel htmlFor="upiId">UPI ID {hint("upiId")}</FieldLabel>
+                    <Input
+                      id="upiId"
+                      placeholder="name@okaxis"
+                      autoCapitalize="none"
+                      autoComplete="off"
+                      spellCheck={false}
+                      aria-invalid={!!errors.upiId}
+                      className={check("upiId")}
+                      {...register("upiId")}
+                    />
                     <FieldError errors={[errors.upiId]} />
                   </Field>
                 )}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field data-invalid={!!errors.transactionId}>
-                    <FieldLabel htmlFor="transactionId">Transaction ID / UTR</FieldLabel>
-                    <Input id="transactionId" autoComplete="off" spellCheck={false} aria-invalid={!!errors.transactionId} {...register("transactionId")} />
+                    <FieldLabel htmlFor="transactionId">Transaction ID / UTR {hint("transactionId")}</FieldLabel>
+                    <Input
+                      id="transactionId"
+                      autoComplete="off"
+                      spellCheck={false}
+                      aria-invalid={!!errors.transactionId}
+                      className={check("transactionId")}
+                      {...register("transactionId")}
+                    />
                     <FieldError errors={[errors.transactionId]} />
                   </Field>
                   <Field data-invalid={!!errors.referenceNumber}>
-                    <FieldLabel htmlFor="referenceNumber">Bill / reference no.</FieldLabel>
-                    <Input id="referenceNumber" autoComplete="off" aria-invalid={!!errors.referenceNumber} {...register("referenceNumber")} />
+                    <FieldLabel htmlFor="referenceNumber">Bill / reference no. {hint("referenceNumber")}</FieldLabel>
+                    <Input
+                      id="referenceNumber"
+                      autoComplete="off"
+                      aria-invalid={!!errors.referenceNumber}
+                      className={check("referenceNumber")}
+                      {...register("referenceNumber")}
+                    />
                     <FieldError errors={[errors.referenceNumber]} />
                   </Field>
                 </div>
@@ -393,6 +514,8 @@ export function EntryForm({
             )}
           </div>
           <FieldError errors={[errors.cashAccountId]} />
+
+          {!attachFirst && attachmentSection}
         </Card>
 
         {/* Actions: sticky above the tab bar on phones, inline on larger screens */}
