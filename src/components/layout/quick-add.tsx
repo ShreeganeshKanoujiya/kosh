@@ -2,6 +2,7 @@
 
 import { ChevronRight, PenLine, Plus, ScanLine, Paperclip } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { useSession } from "@/components/session-provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,9 +58,12 @@ export function QuickAddButton() {
 /** Mobile: the central tab-bar "+" opens a native-feeling action sheet. */
 export function QuickAddSheet({ className }: { className?: string }) {
   const enabled = useCanQuickAdd();
+  // Controlled: the tab bar stays mounted across navigations, so the sheet must close itself
+  // when an option is chosen.
+  const [open, setOpen] = useState(false);
   if (!enabled) return null;
   return (
-    <Drawer>
+    <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
         <button
           type="button"
@@ -82,6 +86,7 @@ export function QuickAddSheet({ className }: { className?: string }) {
             <li key={href}>
               <Link
                 href={href}
+                onClick={() => setOpen(false)}
                 className="flex min-h-16 items-center gap-4 rounded-2xl bg-muted/60 px-4 py-3 active:bg-muted"
               >
                 <span className="inline-flex size-10 items-center justify-center rounded-xl bg-card text-primary shadow-xs">

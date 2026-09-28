@@ -8,9 +8,8 @@ import { Input } from "@/components/ui/input";
 import { AVAILABLE_ROUTES } from "@/config/navigation";
 import { NotificationsButton } from "./notifications-button";
 import { QuickAddButton } from "./quick-add";
-import { UserMenu } from "./user-menu";
 
-/** Tablet/desktop header: search · quick add · notifications · profile. */
+/** Tablet/desktop header: search · quick add · notifications. The account menu lives in the sidebar. */
 export function TopBar() {
   const me = useSession();
   const router = useRouter();
@@ -43,7 +42,6 @@ export function TopBar() {
       <div className="ml-auto flex items-center gap-2">
         <QuickAddButton />
         <NotificationsButton />
-        <UserMenu />
       </div>
     </header>
   );

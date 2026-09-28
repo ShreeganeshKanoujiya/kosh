@@ -3,9 +3,8 @@
 import { LogoMark } from "@/components/brand/logo";
 import { useSession } from "@/components/session-provider";
 import { NotificationsButton } from "./notifications-button";
-import { UserMenu } from "./user-menu";
 
-/** Compact mobile app bar. Pages render their own large title below it. */
+/** Compact mobile app bar. Pages render their own large title below it; the account lives under More. */
 export function MobileHeader() {
   const me = useSession();
   return (
@@ -14,7 +13,6 @@ export function MobileHeader() {
         <LogoMark className="size-7" />
         <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-semibold">{me.company.name}</p>
         <NotificationsButton />
-        <UserMenu />
       </div>
     </header>
   );
