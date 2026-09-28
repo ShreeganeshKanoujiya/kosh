@@ -44,17 +44,40 @@ interface Gray {
 }
 
 /**
- * Grey, contrast-stretched, and sized so text is ~20–40 px tall — what Tesseract reads best.
- * Dark-mode screenshots are inverted to dark-on-light.
+ * One "ink" channel instead of plain luminance: coloured text (Paytm cyan, PhonePe purple,
+ * orange brand names, green "Paid" banners) turns light-grey in a normal greyscale and
+ * Tesseract skips it. On a light screen, a pixel's darkest channel keeps white white and makes
+ * any colour dark; on a dark screen, its brightest channel (inverted) does the same.
  */
+async function inkChannel(image: Uint8Array) {
+  const { data, info } = await sharp(image, { failOn: "error", limitInputPixels: 40_000_000 })
+    .rotate()
+    .removeAlpha()
+    .toColourspace("srgb")
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const pixels = info.width * info.height;
+  const c = info.channels;
+  let luminance = 0;
+  for (let i = 0; i < pixels; i += 7) luminance += 0.299 * data[i * c] + 0.587 * data[i * c + 1] + 0.114 * data[i * c + 2];
+  const dark = luminance / Math.ceil(pixels / 7) < 100;
+  const ink = Buffer.alloc(pixels);
+  for (let i = 0; i < pixels; i++) {
+    const r = data[i * c], g = data[i * c + 1], b = data[i * c + 2];
+    // Dark mode: brightest channel, inverted → dark text on a light page.
+    ink[i] = dark ? 255 - Math.max(r, g, b) : Math.min(r, g, b);
+  }
+  return { ink, width: info.width, height: info.height };
+}
+
+/** Ink channel, contrast-stretched and sized so text is ~20–40 px tall — what Tesseract reads best. */
 async function preprocess(image: Uint8Array): Promise<{ png: Buffer; gray: Gray; sourceWidth: number }> {
-  const base = sharp(image, { failOn: "error", limitInputPixels: 40_000_000 }).rotate().grayscale();
-  const [{ width = 0 }, stats] = await Promise.all([base.clone().metadata(), base.clone().stats()]);
-  let pipeline = base.clone();
-  if (width && width < 1000) pipeline = pipeline.resize({ width: 1400 });
+  const { ink, width, height } = await inkChannel(image);
+  let pipeline = sharp(ink, { raw: { width, height, channels: 1 } });
+  // Small images are usually forwarded/recompressed: smooth the JPEG noise before enlarging it.
+  if (width < 1000) pipeline = pipeline.median(3).resize({ width: 1400, kernel: "cubic" });
   else if (width > 2200) pipeline = pipeline.resize({ width: 2000 });
-  pipeline = pipeline.normalise();
-  if (stats.channels[0].mean < 100) pipeline = pipeline.negate({ alpha: false });
+  pipeline = pipeline.normalise().toColourspace("b-w");
   const { data, info } = await pipeline.raw().toBuffer({ resolveWithObject: true });
   const gray = { data, width: info.width, height: info.height };
   const png = await sharp(data, { raw: { width: info.width, height: info.height, channels: 1 } }).png().toBuffer();

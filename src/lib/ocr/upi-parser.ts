@@ -1,7 +1,9 @@
 // UPI screenshot parser: turns OCR'd text lines into entry fields with a confidence each.
-// Pure (no I/O) so it can be tested against sample text. Covers the common layouts of
-// Google Pay, PhonePe, Paytm, BHIM, Amazon Pay and bank apps; anything it can't find
-// stays empty for the user to fill in on the review screen.
+// Pure (no I/O) so it can be tested against sample text. Covers the receipt layouts of
+// Google Pay, PhonePe, Paytm, BHIM, Amazon Pay, Flipkart UPI / super.money, CRED, WhatsApp,
+// MobiKwik, Freecharge, Airtel Thanks and bank apps (SBI YONO, iMobile, …); anything it can't
+// find stays empty for the user to fill in on the review screen. `npm run ocr:check` runs it
+// on real screenshots.
 
 /** Fields below this confidence are highlighted for the user to check. */
 export const LOW_CONFIDENCE = 80;
@@ -39,10 +41,14 @@ const found = (value: string, line: OcrLine, factor: number): DetectedField => (
 
 const MONEY = String.raw`(\d{1,3}(?:,\d{2,3})+|\d{1,12})(?:\.(\d{1,2}))?`;
 /**
- * A detached ₹ is often read as "X", "%", "&", "?" or "Z" (an attached one as a digit — the
- * OCR step restores those); "Rs"/"INR" are spelled out by some banks.
+ * ₹ isn't in Tesseract's English model: a detached one comes back as "X", "¥", "%", "&", "?"
+ * or "Z" (an attached one as a digit — the OCR step restores those); "Rs"/"INR" are spelled
+ * out by some banks.
  */
-const CURRENCY = String.raw`(?:₹|rs\.?|inr|[%&?zZX])`;
+const CURRENCY = String.raw`(?:₹|rs\.?|inr|[%&?zZX¥])`;
+
+/** Money that isn't the payment itself: cashback banners, rewards, balances, offers. */
+const NOT_THE_PAYMENT = /cash\s?back|reward|scratch|super\s?coins?|\bcoins?\b|\bwon\b|earned|balance|\boffers?\b|discount|\bsaved?\b|savings|\blimit\b|bonus|points/i;
 
 function toAmount(whole: string, fraction?: string) {
   const n = Number(`${whole.replace(/,/g, "")}.${fraction ?? "0"}`);
@@ -52,9 +58,20 @@ function toAmount(whole: string, fraction?: string) {
 function findAmount(lines: OcrLine[]): DetectedField {
   const candidates: { value: string; confidence: number }[] = [];
 
-  for (const line of lines) {
-    // "Amount ₹450.00" / "Amount: 450" / "Total Amount Rs. 1,250"
-    const labelled = new RegExp(String.raw`\b(?:total\s+)?amount\s*(?:paid|sent|received)?\s*[:\-]?\s*${CURRENCY}?\s*${MONEY}\b`, "i").exec(line.text);
+  for (const [i, line] of lines.entries()) {
+    if (NOT_THE_PAYMENT.test(line.text)) continue;
+    // A label on its own line with the number under it ("Amount Paid" / "₹399").
+    const label = lines[i - 1]?.text;
+    const bare = new RegExp(String.raw`^(?:${CURRENCY}|[^\w\s])?\s*${MONEY}\s*$`, "i").exec(line.text);
+    if (bare && label && /^\W?(?:total\s+)?(?:amount(?:\s+(?:paid|sent|received|debited|transferred))?|you\s+paid|paid|total)\s*:?\s*$/i.test(label)) {
+      const v = toAmount(bare[1], bare[2]);
+      if (v) candidates.push({ value: v, confidence: score(line.confidence, 1) });
+    }
+    // "Amount ₹450.00" / "Amount: 450" / "Total Amount Rs. 1,250" / "Amount Paid ₹399"
+    const labelled = new RegExp(
+      String.raw`\b(?:total\s+)?amount\s*(?:paid|sent|received|debited|credited|transferred)?\s*[:\-]?\s*(?:${CURRENCY}|[^\w\s])?\s*${MONEY}\b`,
+      "i",
+    ).exec(line.text);
     if (labelled) {
       const v = toAmount(labelled[1], labelled[2]);
       if (v) candidates.push({ value: v, confidence: score(line.confidence, 1) });
@@ -68,13 +85,22 @@ function findAmount(lines: OcrLine[]): DetectedField {
     }
   }
 
-  // The big number at the top of the receipt: the tallest line that is only a number.
+  // The big number at the top of the receipt: the tallest line that is only a number. It has to
+  // really stand out, and be grouped like an amount ("₹40,000" — apps always add the commas),
+  // so a fragment of a reference number on a poor image isn't mistaken for it.
+  const heights = lines.map((l) => l.height).sort((a, b) => a - b);
+  const median = heights[Math.floor(heights.length / 2)] ?? 0;
   const tallest = [...lines].sort((a, b) => b.height - a.height).slice(0, 3);
   for (const line of tallest) {
+    if (NOT_THE_PAYMENT.test(line.text)) continue;
     const m = new RegExp(String.raw`^[^\w\s]?\s*${MONEY}\s*$`).exec(line.text);
     if (!m) continue;
     const v = toAmount(m[1], m[2]);
     if (!v || m[1].replace(/,/g, "").length > 9) continue;
+    const grouped = m[1].includes(",") || Boolean(m[2]);
+    if (m[1].length >= 4 && !grouped) continue;
+    // A short bare number must be clearly the biggest text; a grouped one ("7,500") is safe anyway.
+    if (!grouped && line.height < median * 1.4) continue;
     // "₹450" misread as "2450": if the same number without its first digit was seen elsewhere, use that.
     const shorter = m[1].length > 1 ? toAmount(m[1].slice(1).replace(/^,/, ""), m[2]) : null;
     if (shorter && candidates.some((c) => c.value === shorter)) continue;
@@ -130,14 +156,20 @@ function findDate(lines: OcrLine[], today: string): DetectedField {
     let value: string | null = null;
     let factor = 1;
 
-    if ((m = new RegExp(String.raw`\b(\d{1,2})(?:st|nd|rd|th)?[\s\-]*${MONTH_RE}[\s,\-]*(\d{4})?\b`).exec(t))) {
+    // Year as "2026", or "'26" (CRED and others).
+    const year = (full?: string, short?: string) => (full ? Number(full) : short ? 2000 + Number(short) : null);
+    const YEAR = String.raw`(?:(\d{4})|['’‘\`´]\s?(\d{2}))?`;
+    // Day and month may be joined by a space, "-", or a smudge OCR reads as ":" / "." ("12:Aug").
+    if ((m = new RegExp(String.raw`\b(\d{1,2})(?:st|nd|rd|th)?[\s\-.:]*${MONTH_RE}[\s,\-]*${YEAR}(?!\d)`).exec(t))) {
       const month = MONTHS.indexOf(m[2]) + 1;
-      value = m[3] ? validYmd(Number(m[3]), month, Number(m[1])) : withYear(month, Number(m[1]), today);
-      if (!m[3]) factor = 0.85;
-    } else if ((m = new RegExp(String.raw`\b${MONTH_RE}\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{4})?\b`).exec(t))) {
+      const y = year(m[3], m[4]);
+      value = y ? validYmd(y, month, Number(m[1])) : withYear(month, Number(m[1]), today);
+      if (!y) factor = 0.85;
+    } else if ((m = new RegExp(String.raw`\b${MONTH_RE}\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*${YEAR}(?!\d)`).exec(t))) {
       const month = MONTHS.indexOf(m[1]) + 1;
-      value = m[3] ? validYmd(Number(m[3]), month, Number(m[2])) : withYear(month, Number(m[2]), today);
-      if (!m[3]) factor = 0.85;
+      const y = year(m[3], m[4]);
+      value = y ? validYmd(y, month, Number(m[2])) : withYear(month, Number(m[2]), today);
+      if (!y) factor = 0.85;
     } else if ((m = /\b(\d{4})-(\d{2})-(\d{2})\b/.exec(t))) {
       value = validYmd(Number(m[1]), Number(m[2]), Number(m[3]));
     } else if ((m = /\b(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4}|\d{2})\b/.exec(t))) {
@@ -165,7 +197,8 @@ function findDate(lines: OcrLine[], today: string): DetectedField {
 function findTime(lines: OcrLine[]): DetectedField {
   // Prefer an am/pm time; fall back to a bare 24-hour one that isn't part of a longer number.
   for (const line of lines) {
-    const m = /\b(\d{1,2})[:.](\d{2})(?:[:.]\d{2})?\s*([ap])\.?\s?m\b\.?/i.exec(line.text);
+    // "pm" is sometimes read as "prn" / "pin" / "pn" on small or blurry text.
+    const m = /\b(\d{1,2})[:.](\d{2})(?:[:.]\d{2})?\s*([ap])\.?\s?(?:m|rn|in|n)\b\.?/i.exec(line.text);
     if (!m) continue;
     let h = Number(m[1]);
     const min = Number(m[2]);
@@ -214,22 +247,29 @@ function findUpiId(lines: OcrLine[], counterparty: "to" | "from"): DetectedField
   return fallback ? found(fallback.value, fallback.line, 0.75) : NONE;
 }
 
-const NAME_JUNK = /\s*(?:[a-z0-9._-]+@[a-z][a-z0-9]*|\(.*?\)|x{2,}\d+|\*{2,}\d+|a\/c.*|upi\s*id.*|bank.*)$/i;
+const NAME_JUNK = /\s*(?:[a-z0-9._-]+@[a-z][a-z0-9]*|\(.*?\)|x{2,}\d+|\*{2,}\d+|a\/c.*|upi\s*id.*|bank.*|\s+on\s+\d.*|successfully)$/i;
 
 function cleanName(raw: string) {
   const name = raw.replace(NAME_JUNK, "").replace(/^[\s:\-–—]+|[\s:\-–—.,]+$/g, "").replace(/\s+/g, " ");
-  if (!/[a-z]{2}/i.test(name) || name.length > 120 || /^(upi|bank|account|you|self|me)\b/i.test(name)) return null;
+  if (!/[a-z]{2}/i.test(name) || name.length > 120 || /^(upi|vpa|bank|account|a\/c|you|your|self|me)\b/i.test(name)) return null;
   return name;
 }
 
+// A name label, but not "Payee VPA" / "Beneficiary account" and the like.
+const NOT_A_NAME_LABEL = String.raw`(?!\s*(?:vpa|upi|id\b|address|account|a\/c|bank|transaction|txn|order|ref|code|category|type))`;
+/** Labels that can sit anywhere in a line ("₹75 Paid to Hotel Annapurna", "Payee Name: …"). */
+const NAME_LABELS = {
+  to: String.raw`(?:paid\s+to|sent\s+to|payment\s+to|money\s+sent\s+to|transferred\s+to|payee(?:\s+name)?|beneficiary(?:\s+name)?|merchant(?:\s+name)?)${NOT_A_NAME_LABEL}`,
+  from: String.raw`(?:received\s+from|money\s+received\s+from|payer(?:\s+name)?|sender(?:\s+name)?|remitter(?:\s+name)?)${NOT_A_NAME_LABEL}`,
+};
+/** Short labels that only count at the start of a line ("To: …", "From: …"). */
+const LEADING_LABELS = { to: "to", from: "from" };
+
 function findName(lines: OcrLine[], counterparty: "to" | "from"): DetectedField {
-  const labels =
-    counterparty === "to"
-      ? String.raw`(?:paid\s+to|sent\s+to|payment\s+to|money\s+sent\s+to|to)`
-      : String.raw`(?:received\s+from|money\s+received\s+from|from)`;
-  const re = new RegExp(String.raw`^\W{0,2}${labels}\b\s*[:\-]?\s*(.*)$`, "i");
+  const anywhere = new RegExp(String.raw`\b${NAME_LABELS[counterparty]}\b\s*[:\-]?\s*(.*)$`, "i");
+  const leading = new RegExp(String.raw`^\W{0,2}${LEADING_LABELS[counterparty]}\b${NOT_A_NAME_LABEL}\s*[:\-]?\s*(.*)$`, "i");
   for (let i = 0; i < lines.length; i++) {
-    const m = re.exec(lines[i].text);
+    const m = anywhere.exec(lines[i].text) ?? leading.exec(lines[i].text);
     if (!m) continue;
     const rest = m[1].trim();
     if (rest) {
@@ -276,25 +316,33 @@ function findUtr(lines: OcrLine[]): DetectedField {
   return NONE;
 }
 
+/**
+ * The app's own reference, alongside the UPI one: "Google transaction ID", "Amazon Pay
+ * transaction ID", "CRED transaction ID", "Txn ID", "Order ID", "Payment ID", PhonePe's T…
+ * number. Lines carrying the UPI reference (UTR / UPI Ref / RRN) are skipped.
+ */
+const APP_REF_LABEL = /\b(?:transaction|txn|trans|payment|order)\.?\s*(?:id|no\.?|number)\b\s*[:#\-]?\s*([A-Za-z0-9][A-Za-z0-9_\-]{5,63})?/i;
+const REF_VALUE = /^[A-Za-z0-9][A-Za-z0-9_\-]{5,63}$/;
+
 function findAppReference(lines: OcrLine[], utr: string | null): DetectedField {
-  const patterns: { re: RegExp; nextLine?: boolean }[] = [
-    { re: /\b(T\d{15,30})\b/ }, // PhonePe transaction ID
-    { re: /google\s*transaction\s*id\s*[:#]?\s*([A-Za-z0-9_-]{8,64})?/i, nextLine: true },
-    { re: /order\s*id\s*[:#]?\s*([A-Za-z0-9_-]{6,64})?/i, nextLine: true },
-    { re: /^\W?transaction\s*id\s*[:#]?\s*([A-Za-z0-9_-]{8,64})?$/i, nextLine: true },
-  ];
-  for (const { re, nextLine } of patterns) {
-    for (let i = 0; i < lines.length; i++) {
-      const m = re.exec(lines[i].text);
-      if (!m) continue;
-      let value = m[1];
-      let line = lines[i];
-      if (!value && nextLine && lines[i + 1] && /^[A-Za-z0-9_-]{8,64}$/.test(lines[i + 1].text.replace(/\s/g, ""))) {
-        value = lines[i + 1].text.replace(/\s/g, "");
-        line = lines[i + 1];
-      }
-      if (value && value !== utr) return found(value.slice(0, 64), line, 0.95);
+  const utrLabel = new RegExp(UTR_LABEL, "i");
+  for (const line of lines) {
+    const m = /\b(T\d{15,30})\b/.exec(line.text); // PhonePe transaction ID
+    if (m && m[1] !== utr) return found(m[1], line, 0.95);
+  }
+  for (let i = 0; i < lines.length; i++) {
+    if (utrLabel.test(lines[i].text)) continue;
+    const m = APP_REF_LABEL.exec(lines[i].text);
+    if (!m) continue;
+    let value = m[1];
+    let line = lines[i];
+    const next = lines[i + 1]?.text.replace(/\s/g, "");
+    if (!value && next && REF_VALUE.test(next)) {
+      value = next;
+      line = lines[i + 1];
     }
+    // Must look like an ID (has a digit), and not be the UPI reference shown under another name.
+    if (value && /\d/.test(value) && value !== utr) return found(value.slice(0, 64), line, 0.95);
   }
   return NONE;
 }
@@ -320,13 +368,37 @@ function findNote(lines: OcrLine[], app: string | null, payee: string | null): D
 
 // ─── Page-level signals ────────────────────────────────────────────────────
 
+/** Most specific first; bank names alone don't identify the app (they appear as "Debited from"). */
+const APPS: [RegExp, string][] = [
+  [/google\s*pay|\bg\s?pay\b|google\s*transaction/i, "Google Pay"],
+  [/phone\s?pe/i, "PhonePe"],
+  [/pay\s?tm/i, "Paytm"],
+  [/\bbhim\b/i, "BHIM"],
+  [/amazon\s*pay|\bamazon\b/i, "Amazon Pay"],
+  [/super\s?\.?\s?money/i, "super.money"],
+  [/flipkart/i, "Flipkart UPI"],
+  [/\bcred\b/i, "CRED"],
+  [/whats\s?app/i, "WhatsApp"],
+  [/mobi\s?kwik/i, "MobiKwik"],
+  [/free\s?charge/i, "Freecharge"],
+  [/airtel/i, "Airtel Thanks"],
+  [/\bjio\s?(?:pay|finance)\b/i, "JioFinance"],
+  [/\bnavi\b/i, "Navi"],
+  [/\bslice\b/i, "slice"],
+  [/\bpop\s?upi\b|\bpopclub\b/i, "POP"],
+  [/\byono\b/i, "SBI YONO"],
+  [/\bimobile\b/i, "ICICI iMobile"],
+  [/pay\s?zapp/i, "HDFC PayZapp"],
+  [/\bbob\s?world\b/i, "bob World"],
+  [/\bkotak\b.*\b(?:811|mobile banking)\b/i, "Kotak"],
+];
+
 function detectApp(text: string): string | null {
-  if (/google\s*pay|g\s?pay|google\s*transaction/i.test(text)) return "Google Pay";
-  if (/phone\s?pe/i.test(text)) return "PhonePe";
-  if (/paytm/i.test(text)) return "Paytm";
-  if (/\bbhim\b/i.test(text)) return "BHIM";
-  if (/amazon\s*pay/i.test(text)) return "Amazon Pay";
-  if (/\bbank\b/i.test(text) && /\bupi\b/i.test(text)) return "Bank app";
+  // Ignore UPI IDs: paying "shop@paytm" from Google Pay isn't a Paytm receipt.
+  const visible = text.replace(new RegExp(VPA_RE.source, "gi"), " ");
+  for (const [re, name] of APPS) if (re.test(visible)) return name;
+  // Every receipt names a bank ("Debited from …"); only bank-app wording identifies a bank app.
+  if (/\b(beneficiary|remitter|debit\s+account|credit\s+account|payee\s+vpa)\b/i.test(visible)) return "Bank app";
   return null;
 }
 

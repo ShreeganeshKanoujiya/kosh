@@ -181,6 +181,8 @@ Without these variables, uploads are switched off in production (the app says so
 
 **UPI screenshot reading** needs no setup or external service. Kosh reads screenshots on its own server with [Tesseract](https://github.com/tesseract-ocr/tesseract) OCR. The English model ships with the app (`@tesseract.js-data/eng`), so no image leaves your server. The first scan after a cold start takes 1–2 seconds longer while the model loads. Every value it detects is shown for the user to check before anything is saved.
 
+It understands the receipt layouts of Google Pay, PhonePe, Paytm, BHIM, Amazon Pay, Flipkart UPI / super.money, CRED, WhatsApp, MobiKwik, Freecharge, Airtel Thanks and bank apps such as SBI YONO, in light or dark mode, including screenshots forwarded over WhatsApp. To check how it reads your own screenshots, run `npm run ocr:check -- <image or folder> [--raw]`. Put an `expected.json` in a folder to turn it into a regression test (see `scripts/ocr-check.ts`).
+
 ## 10. Operations checklist
 
 - **Backups:** paid plans take daily backups automatically. Turn on **Point-in-Time Recovery** (**Database → Backups**) for financial data.
