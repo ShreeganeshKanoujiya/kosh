@@ -30,9 +30,12 @@ const pdfFonts = ["./node_modules/@expo-google-fonts/inter/400Regular/*.ttf", ".
 
 // UPI screenshot OCR: Tesseract spawns its worker script by file path (invisible to tracing),
 // loads a WebAssembly core, and reads the English model from disk.
+// Ship every core variant: tesseract.js 7.0.0's Node loader passes a boolean where it expects
+// an OEM number, so it always picks the full (non-"lstm") core, e.g. tesseract-core-relaxedsimd;
+// the "-lstm" ones are kept in case a later release fixes that. Each .js loads its .wasm.
 const tesseractFiles = [
   "./node_modules/tesseract.js/src/**/*",
-  "./node_modules/tesseract.js-core/tesseract-core-*lstm*",
+  "./node_modules/tesseract.js-core/tesseract-core*",
   "./node_modules/tesseract.js-core/package.json",
   "./node_modules/@tesseract.js-data/eng/4.0.0_best_int/*",
   "./node_modules/{bmp-js,is-url,node-fetch,regenerator-runtime,wasm-feature-detect,zlibjs}/**/*",
