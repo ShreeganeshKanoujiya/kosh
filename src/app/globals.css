@@ -248,6 +248,61 @@
   @apply font-semibold tabular-nums tracking-tight;
 }
 
+/* Long-form text: help articles and the legal pages. */
+@layer components {
+  .doc-prose {
+    @apply text-[0.9375rem] leading-7 text-foreground/90;
+  }
+  .doc-prose > * + * {
+    @apply mt-4;
+  }
+  .doc-prose h2 {
+    @apply mt-12 scroll-mt-24 text-xl font-semibold tracking-tight text-foreground;
+  }
+  .doc-prose h3 {
+    @apply mt-8 scroll-mt-24 text-base font-semibold text-foreground;
+  }
+  .doc-prose > h2:first-child,
+  .doc-prose > h3:first-child {
+    @apply mt-0;
+  }
+  .doc-prose h2 + *,
+  .doc-prose h3 + * {
+    @apply mt-3;
+  }
+  .doc-prose ul {
+    @apply list-disc space-y-2 pl-5;
+  }
+  .doc-prose ol {
+    @apply list-decimal space-y-2 pl-5;
+  }
+  .doc-prose li {
+    @apply pl-1;
+  }
+  .doc-prose li::marker {
+    @apply text-muted-foreground;
+  }
+  .doc-prose a {
+    @apply font-medium text-primary underline decoration-primary/40 underline-offset-4 hover:decoration-primary;
+  }
+  .doc-prose strong {
+    @apply font-semibold text-foreground;
+  }
+  .doc-prose kbd,
+  .doc-prose code {
+    @apply rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.8125rem] text-foreground;
+  }
+  .doc-prose table {
+    @apply w-full text-left text-sm;
+  }
+  .doc-prose th {
+    @apply border-b py-2 pr-4 font-semibold text-foreground;
+  }
+  .doc-prose td {
+    @apply border-b py-2.5 pr-4 align-top;
+  }
+}
+
 /* Bottom safe area for the mobile tab bar (iPhone home indicator). */
 @utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom);

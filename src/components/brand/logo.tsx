@@ -1,16 +1,16 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-// Where the letters sit inside public/kosh.png (1254×1254, transparent). Re-measure if the image changes.
+// Where the letters sit inside public/kosh.png and public/kosh-dark.png (both 1254×1254, transparent).
+// kosh-dark.png is kosh.png with the white letters recoloured dark. Re-measure if the images change.
 const WORDMARK = { size: 1254, left: 162, top: 465, width: 939, height: 310 };
 
-/** The white Kosh wordmark from public/kosh.png, cropped to the letters. For dark surfaces only; size it by width. */
-export function KoshWordmark({ className }: { className?: string }) {
+function WordmarkImage({ src, className }: { src: string; className?: string }) {
   const { size, left, top, width, height } = WORDMARK;
   return (
     <span className={cn("relative block overflow-hidden", className)} style={{ aspectRatio: `${width} / ${height}` }}>
       <Image
-        src="/kosh.png"
+        src={src}
         alt="Kosh"
         width={size}
         height={size}
@@ -19,6 +19,20 @@ export function KoshWordmark({ className }: { className?: string }) {
         className="absolute max-w-none"
         style={{ width: `${(size / width) * 100}%`, height: "auto", left: `${(-left / width) * 100}%`, top: `${(-top / height) * 100}%` }}
       />
+    </span>
+  );
+}
+
+/**
+ * The Kosh wordmark, cropped to the letters; size it by width. White letters by default (for dark
+ * surfaces); `adaptive` switches to dark letters in the light theme.
+ */
+export function KoshWordmark({ className, adaptive = false }: { className?: string; adaptive?: boolean }) {
+  if (!adaptive) return <WordmarkImage src="/kosh.png" className={className} />;
+  return (
+    <span className={cn("block", className)}>
+      <WordmarkImage src="/kosh-dark.png" className="dark:hidden" />
+      <WordmarkImage src="/kosh.png" className="hidden dark:block" />
     </span>
   );
 }

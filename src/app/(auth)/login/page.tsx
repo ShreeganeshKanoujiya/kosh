@@ -4,7 +4,11 @@ import { LoginForm } from "@/components/auth/login-form";
 import { getAuthContext } from "@/lib/auth/session";
 import { safeNextPath } from "@/lib/navigation";
 
-export const metadata: Metadata = { title: "Log in" };
+export const metadata: Metadata = {
+  title: "Log in",
+  description: "Log in to Kosh with your company code, username and password.",
+  alternates: { canonical: "/login" },
+};
 
 const NOTICES: Record<string, string> = {
   session: "Your session has ended. Please log in again.",

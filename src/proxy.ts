@@ -29,9 +29,18 @@ export async function proxy(req: NextRequest) {
   let renewed: IssuedTokens | null = null;
   let clearCookies = false;
 
+  const isProtectedPage = !isApi && !matches(pathname, PUBLIC_PAGES);
   const refreshToken = req.cookies.get(AUTH_COOKIES.refresh)?.value;
   if (!authenticated && refreshToken) {
-    const outcome = await rotateRefreshToken(refreshToken, getRequestMeta(req.headers));
+    let outcome: Awaited<ReturnType<typeof rotateRefreshToken>>;
+    try {
+      outcome = await rotateRefreshToken(refreshToken, getRequestMeta(req.headers));
+    } catch (error) {
+      // Public pages don't need a session, so a database outage mustn't take them down.
+      // The cookies are left alone: the token may still be good once the database is back.
+      if (isApi || isProtectedPage) throw error;
+      return NextResponse.next();
+    }
     if (outcome.ok) {
       authenticated = true;
       renewed = outcome.tokens;
@@ -40,12 +49,18 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  const isProtectedPage = !isApi && !matches(pathname, PUBLIC_PAGES);
   if (!authenticated && isProtectedPage) {
     const loginUrl = new URL("/login", req.url);
-    if (pathname !== "/") loginUrl.searchParams.set("next", `${pathname}${search}`);
+    loginUrl.searchParams.set("next", `${pathname}${search}`);
     const res = NextResponse.redirect(loginUrl);
     if (clearCookies) clearAuthCookies(res.cookies);
+    return res;
+  }
+
+  // The landing page is for visitors; people who are signed in go straight to the app.
+  if (authenticated && pathname === "/") {
+    const res = NextResponse.redirect(new URL("/dashboard", req.url));
+    if (renewed) setAuthCookies(res.cookies, renewed);
     return res;
   }
 

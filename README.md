@@ -14,6 +14,7 @@ Each company gets its own isolated space. People sign in with the company's code
 - **Reports.** Daily, weekly and monthly spend; by category, user and payment method; cash-account movement; approval throughput. Export to CSV, Excel or PDF.
 - **Audit log** of every change, append-only at the database level.
 - **Mobile-first UI** with a bottom tab bar, swipe-to-edit rows, light and dark themes, and WCAG AA contrast with 44 px touch targets.
+- **Public site:** a landing page, FAQ, help center (`/help`), Privacy policy and Terms, with SEO metadata, a sitemap, `robots.txt` and a generated share image. Signed-in visitors to `/` go straight to the dashboard.
 
 ## Tech stack
 
@@ -34,7 +35,7 @@ Each company gets its own isolated space. People sign in with the company's code
 ### Prerequisites
 
 - Node.js 20 or newer (22 LTS recommended)
-- A PostgreSQL 15+ database: a Supabase project, or local Postgres, for example with Docker:
+- A PostgreSQL 15+ database. For local development you don't need to install one: when `DATABASE_URL` points at `localhost` and nothing is running there, `npm run dev` starts a bundled PostgreSQL 17 (from the `embedded-postgres` package) and keeps its data in `.data/postgres`. You can also use a Supabase project or your own Postgres, for example with Docker:
 
   ```bash
   docker run -d --name kosh-db -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:17
@@ -47,17 +48,18 @@ git clone https://github.com/ShreeganeshKanoujiya/kosh.git
 cd kosh
 npm install              # also generates the Prisma client
 cp .env.example .env     # then fill in the values below
-npm run db:deploy        # create the tables and seed the permission catalogue
-npm run dev
+npm run dev              # starts the local database if needed, then the app
 ```
+
+With the bundled database, a brand-new `.data/postgres` gets the migrations and permission seed applied on first start. With your own database, run `npm run db:deploy` once before `npm run dev`.
 
 Open <http://localhost:3000/register>, create your company, and **save the company code** it shows. Everyone in the company logs in with that code.
 
 The minimum `.env` for local development:
 
 ```dotenv
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres"
-DIRECT_URL="postgresql://postgres:postgres@localhost:5432/postgres"
+DATABASE_URL="postgresql://postgres:postgres@localhost:54329/kosh"
+DIRECT_URL="postgresql://postgres:postgres@localhost:54329/kosh"
 APP_URL="http://localhost:3000"
 JWT_ACCESS_SECRET="<at least 32 random characters>"
 ```
@@ -90,7 +92,8 @@ All variables are documented in [`.env.example`](.env.example). The app validate
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | Development server on port 3000 |
+| `npm run dev` | Development server on port 3000; starts the local database first when `.env` points at one that isn't running |
+| `npm run db:local` | Run only the local database (until Ctrl+C), e.g. for Prisma Studio or migrations |
 | `npm run build` / `npm start` | Production build and server |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | Generate route types, then run `tsc` |
@@ -104,9 +107,10 @@ All variables are documented in [`.env.example`](.env.example). The app validate
 
 ```text
 prisma/            schema, migrations, permission seed
-scripts/           developer tools (ocr-check)
+scripts/           developer tools: dev (local database + Next.js), local-db, ocr-check
 src/
-  app/             routes: (auth) pages, (app) pages, api/ route handlers
+  app/             routes: (marketing) public site, (auth) pages, (app) pages, api/ route handlers
+  content/         FAQ and help-center articles
   components/      UI, grouped by feature; ui/ holds the shadcn primitives
   config/          permissions, navigation, labels, env validation
   lib/             auth, API plumbing, storage, OCR, exports, mail, security

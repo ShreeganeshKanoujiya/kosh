@@ -1,78 +1,36 @@
-import { ShieldCheck, ScanLine, Users } from "lucide-react";
+import Link from "next/link";
 import { KoshWordmark } from "@/components/brand/logo";
 
-const TAGLINE = "Expenses in Control.";
-const PITCH =
-  "Manage petty cash, track expenses, verify transactions, and keep your company's finances organized — all in one place.";
-
-const HIGHLIGHTS = [
-  { icon: ScanLine, title: "Scan UPI screenshots", body: "Amount, merchant and reference captured for you to confirm." },
-  { icon: ShieldCheck, title: "Approvals & audit trail", body: "Every entry reviewed, every change recorded." },
-  { icon: Users, title: "Built for teams", body: "Cashiers record in seconds. Accountants stay in control." },
+const FOOTER_LINKS = [
+  { href: "/help", label: "Help" },
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
 ];
 
+/** Login, sign-up and password screens: just the form, centred on the page. */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-      {/* Brand panel — desktop only. Always dark: the Kosh wordmark is white. */}
-      <aside className="dark relative hidden flex-col overflow-hidden border-r bg-background p-10 text-foreground lg:flex xl:p-14">
-        <div aria-hidden className="pointer-events-none absolute -top-32 -left-32 size-96 rounded-full bg-primary/15 blur-3xl" />
-        <div className="relative flex max-w-md flex-1 flex-col justify-center space-y-10">
-          <div className="space-y-5">
-            <KoshWordmark className="w-40" />
-            <div className="space-y-3">
-              <p className="text-4xl font-semibold tracking-tight text-balance">{TAGLINE}</p>
-              <p className="text-body text-muted-foreground">{PITCH}</p>
-            </div>
-          </div>
+    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4 pt-[calc(env(safe-area-inset-top)+2.5rem)] pb-[calc(env(safe-area-inset-bottom)+2.5rem)] sm:px-6">
+      <div aria-hidden className="pointer-events-none absolute -top-56 left-1/2 size-[36rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
 
-          <div className="rounded-2xl border bg-card p-5 shadow-xs">
-            <p className="text-meta">Current balance</p>
-            <p className="text-amount mt-1 text-3xl">₹18,450.00</p>
-            <div className="mt-4 space-y-2.5">
-              {[
-                ["ABC Stationery", "Office Supplies", "₹450"],
-                ["Metro recharge", "Travel", "₹300"],
-                ["Tea & snacks", "Refreshments", "₹120"],
-              ].map(([name, cat, amt]) => (
-                <div key={name} className="flex items-center justify-between text-sm">
-                  <div>
-                    <p className="font-medium">{name}</p>
-                    <p className="text-meta">{cat}</p>
-                  </div>
-                  <span className="text-amount">{amt}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+      <main className="relative w-full max-w-[28rem]">
+        <Link href="/" aria-label="Kosh home" className="mx-auto mb-8 flex w-fit rounded-lg">
+          <KoshWordmark adaptive className="w-32" />
+        </Link>
 
-          <ul className="space-y-4">
-            {HIGHLIGHTS.map(({ icon: Icon, title, body }) => (
-              <li key={title} className="flex gap-3">
-                <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                  <Icon className="size-4" aria-hidden />
-                </span>
-                <div>
-                  <p className="text-sm font-medium">{title}</p>
-                  <p className="text-caption">{body}</p>
-                </div>
+        <div className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">{children}</div>
+
+        <nav aria-label="More" className="mt-6">
+          <ul className="flex justify-center gap-5">
+            {FOOTER_LINKS.map((link) => (
+              <li key={link.href}>
+                <Link href={link.href} className="inline-flex min-h-9 items-center text-meta hover:text-foreground">
+                  {link.label}
+                </Link>
               </li>
             ))}
           </ul>
-        </div>
-        <p className="relative text-meta">© {new Date().getFullYear()} Kosh</p>
-      </aside>
-
-      <main className="flex flex-col px-4 pt-safe pb-safe sm:px-8">
-        {/* Phones and tablets: the brand panel is hidden, so show a compact version above the form. */}
-        <div className="dark mx-auto mt-4 w-full max-w-[26rem] rounded-2xl border bg-background p-5 text-foreground lg:hidden">
-          <KoshWordmark className="w-24" />
-          <p className="mt-4 text-xl font-semibold tracking-tight">{TAGLINE}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{PITCH}</p>
-        </div>
-        <div className="flex flex-1 items-start justify-center py-6 sm:items-center sm:py-12">
-          <div className="w-full max-w-[26rem]">{children}</div>
-        </div>
+        </nav>
       </main>
     </div>
   );

@@ -127,6 +127,18 @@ export function RegisterForm() {
         {formState.isSubmitting ? "Creating company…" : "Create company"}
       </Button>
 
+      <p className="text-center text-meta">
+        By creating a company, you agree to the{" "}
+        <Link href="/terms" className="font-medium text-foreground underline underline-offset-2 hover:text-primary">
+          Terms and conditions
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="font-medium text-foreground underline underline-offset-2 hover:text-primary">
+          Privacy policy
+        </Link>
+        .
+      </p>
+
       <p className="text-center text-sm text-muted-foreground">
         Already have a company code?{" "}
         <Link href="/login" className="font-medium text-primary hover:underline">

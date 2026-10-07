@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, Ellipsis, LogOut, MonitorSmartphone } from "lucide-react";
+import { ChevronRight, CircleHelp, Ellipsis, LogOut, MonitorSmartphone } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -113,6 +113,16 @@ export function MobileTabBar() {
                   })}
                 </ul>
               )}
+
+              <ul className="overflow-hidden rounded-2xl bg-muted/60">
+                <li>
+                  <Link href="/help" onClick={() => setMoreOpen(false)} className="flex min-h-13 items-center gap-3 px-4 active:bg-muted">
+                    <CircleHelp className="size-5 text-muted-foreground" aria-hidden />
+                    <span className="flex-1 text-[0.9375rem]">Help center</span>
+                    <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+                  </Link>
+                </li>
+              </ul>
 
               <div className="space-y-2">
                 <p className="px-1 text-meta font-medium uppercase">Appearance</p>

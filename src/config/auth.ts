@@ -35,7 +35,19 @@ export const RATE_LIMITS = {
 
 export const PASSWORD_RESET_TTL_MINUTES = 30;
 
-export const PUBLIC_PAGES = ["/login", "/register", "/forgot-password", "/reset-password"] as const;
+export const PUBLIC_PAGES = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  // Public site. "/" matches the landing page only; signed-in visitors are sent on to the dashboard.
+  "/",
+  "/faq",
+  "/help",
+  "/privacy",
+  "/terms",
+  "/opengraph-image",
+] as const;
 
 /** API routes that must work without a valid access token (and must not trigger a proxy refresh). */
 export const PUBLIC_API_PREFIXES = [

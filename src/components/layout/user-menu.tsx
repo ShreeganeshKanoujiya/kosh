@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Monitor, Moon, MonitorSmartphone, Settings, Sun } from "lucide-react";
+import { CircleHelp, LogOut, Monitor, Moon, MonitorSmartphone, Settings, Sun } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { UserAvatar } from "@/components/common/user-avatar";
@@ -62,6 +62,12 @@ export function UserMenu({ variant = "avatar" }: { variant?: "avatar" | "sidebar
             <Link href="/settings">
               <Settings />
               Settings
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/help">
+              <CircleHelp />
+              Help center
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSub>

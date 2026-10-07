@@ -4,7 +4,7 @@ import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 import { FormAlert } from "@/components/forms/form-alert";
 import { Button } from "@/components/ui/button";
 
-export const metadata: Metadata = { title: "Choose a new password", referrer: "no-referrer" };
+export const metadata: Metadata = { title: "Choose a new password", referrer: "no-referrer", robots: { index: false, follow: false } };
 
 export default async function ResetPasswordPage({ searchParams }: PageProps<"/reset-password">) {
   const { token } = await searchParams;

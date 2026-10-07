@@ -11,7 +11,7 @@ import { applyServerErrors } from "@/components/forms/form-utils";
 import { PasswordInput } from "@/components/forms/password-input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { ApiClientError, api, errorMessage } from "@/lib/api-client";
@@ -99,6 +99,11 @@ export function LoginForm({ next, notice }: { next: string; notice?: string }) {
                 aria-invalid={fieldState.invalid}
                 className="font-mono text-base tracking-[0.2em] uppercase placeholder:tracking-[0.2em]"
               />
+              {!fieldState.invalid && (
+                <FieldDescription>
+                  Don&apos;t know it? It&apos;s in the account menu of anyone in your company.
+                </FieldDescription>
+              )}
               <FieldError errors={[fieldState.error]} />
             </Field>
           )}
@@ -148,12 +153,15 @@ export function LoginForm({ next, notice }: { next: string; notice?: string }) {
         {formState.isSubmitting ? "Signing in…" : "Log in"}
       </Button>
 
-      <p className="text-center text-sm text-muted-foreground">
-        New to Kosh?{" "}
-        <Link href="/register" className="font-medium text-primary hover:underline">
-          Create a company
-        </Link>
-      </p>
+      <div className="flex items-center gap-3 text-meta">
+        <span className="h-px flex-1 bg-border" aria-hidden />
+        New to Kosh?
+        <span className="h-px flex-1 bg-border" aria-hidden />
+      </div>
+
+      <Button asChild size="lg" variant="outline" className="w-full">
+        <Link href="/register">Create your company</Link>
+      </Button>
     </form>
   );
 }

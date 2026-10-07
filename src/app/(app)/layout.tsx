@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { MobileHeader } from "@/components/layout/mobile-header";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
@@ -6,6 +7,9 @@ import { TopBar } from "@/components/layout/top-bar";
 import { SessionProvider } from "@/components/session-provider";
 import { getAuthContext } from "@/lib/auth/session";
 import { getMe } from "@/services/auth.service";
+
+// Signed-in pages: never indexed, even if a link to one leaks.
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // Layouts don't re-run on client navigation, so each page also calls requirePageAuth().
