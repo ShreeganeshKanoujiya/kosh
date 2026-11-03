@@ -23,8 +23,17 @@ export const SITE = {
     "office expenses",
     "small business accounting",
   ],
-  /** Shown as "Last updated" on the legal pages. Change it whenever their text changes. */
-  legalUpdated: "7 October 2026",
+  /** ISO date the landing and FAQ pages last changed (sitemap `lastModified`). */
+  contentUpdated: "2026-10-07",
+  /** ISO date shown as "Last updated" on the legal pages. Change it whenever their text changes. */
+  legalUpdated: "2026-10-07",
+  /** Square brand logo, used by the web app manifest and the Organization structured data. */
+  logo: "/icon-512.png",
+  /** Ownership tokens for Google Search Console and Bing Webmaster Tools (HTML-tag method). */
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+    bing: process.env.BING_SITE_VERIFICATION || undefined,
+  },
 } as const;
 
 export const absoluteUrl = (path = "/") => `${SITE.url}${path === "/" ? "" : path}`;

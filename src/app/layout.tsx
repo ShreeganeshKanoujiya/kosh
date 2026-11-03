@@ -22,6 +22,10 @@ export const metadata: Metadata = {
   category: "finance",
   appleWebApp: { capable: true, title: SITE.name, statusBarStyle: "default" },
   formatDetection: { telephone: false, email: false, address: false },
+  verification: {
+    google: SITE.verification.google,
+    other: SITE.verification.bing ? { "msvalidate.01": SITE.verification.bing } : undefined,
+  },
   openGraph: {
     type: "website",
     siteName: SITE.name,

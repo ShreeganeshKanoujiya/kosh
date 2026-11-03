@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { HELP_ARTICLES, HELP_CATEGORIES, articlesIn, getHelpArticle, helpCategory } from "@/content/help";
 import { absoluteUrl, jsonLd } from "@/config/site";
-import { pageMetadata } from "@/lib/seo";
+import { formatDate } from "@/lib/format";
+import { ORGANIZATION_ID, WEBSITE_ID, organizationJsonLd, pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
 export const dynamicParams = false;
@@ -15,7 +16,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<"/help/[slug]">) {
   const article = getHelpArticle((await params).slug);
   if (!article) return {};
-  return pageMetadata({ title: article.title, description: article.description, path: `/help/${article.slug}` });
+  return pageMetadata({ title: article.title, description: article.description, path: `/help/${article.slug}`, ownImage: true });
 }
 
 function TopicNav({ current }: { current: string }) {
@@ -56,18 +57,37 @@ export default async function HelpArticlePage({ params }: PageProps<"/help/[slug
   const prev = HELP_ARTICLES[index - 1];
   const next = HELP_ARTICLES[index + 1];
 
-  const breadcrumbJsonLd = {
+  const url = absoluteUrl(`/help/${article.slug}`);
+  const articleJsonLd = {
     "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Help center", item: absoluteUrl("/help") },
-      { "@type": "ListItem", position: 2, name: article.title, item: absoluteUrl(`/help/${article.slug}`) },
+    "@graph": [
+      organizationJsonLd,
+      {
+        "@type": "TechArticle",
+        headline: article.title,
+        description: article.description,
+        url,
+        mainEntityOfPage: url,
+        dateModified: article.updated,
+        inLanguage: "en-IN",
+        articleSection: category.title,
+        author: { "@id": ORGANIZATION_ID },
+        publisher: { "@id": ORGANIZATION_ID },
+        isPartOf: { "@id": WEBSITE_ID },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Help center", item: absoluteUrl("/help") },
+          { "@type": "ListItem", position: 2, name: article.title, item: url },
+        ],
+      },
     ],
   };
 
   return (
     <div className="mx-auto grid max-w-6xl gap-10 px-4 py-10 sm:px-6 md:py-14 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-14">
-      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(breadcrumbJsonLd)} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(articleJsonLd)} />
 
       <nav aria-label="Help topics" className="hidden lg:block">
         <div className="sticky top-24 max-h-[calc(100dvh-8rem)] overflow-y-auto pb-6">
@@ -92,6 +112,9 @@ export default async function HelpArticlePage({ params }: PageProps<"/help/[slug
 
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{article.title}</h1>
         <p className="mt-3 text-base leading-7 text-muted-foreground">{article.description}</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Updated <time dateTime={article.updated}>{formatDate(article.updated)}</time>
+        </p>
 
         <details className="group mt-6 rounded-xl border bg-card lg:hidden">
           <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 text-sm font-medium [&::-webkit-details-marker]:hidden">

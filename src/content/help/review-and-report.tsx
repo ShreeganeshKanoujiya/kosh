@@ -5,6 +5,7 @@ export const approvalArticles: HelpArticle[] = [
   {
     slug: "approval-workflow",
     category: "approvals",
+    updated: "2026-10-07",
     title: "How approvals work",
     description: "Submit, verify, approve or reject: the approval steps, who can review what, notifications, and switching approvals off.",
     Body: () => (
@@ -110,6 +111,7 @@ export const reportArticles: HelpArticle[] = [
   {
     slug: "dashboard-and-reports",
     category: "reports",
+    updated: "2026-10-07",
     title: "Dashboard and reports",
     description: "Read your cash balance and dashboard, run the eight reports, choose date ranges, and export to CSV, Excel or PDF.",
     Body: () => (

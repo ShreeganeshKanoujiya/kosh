@@ -5,6 +5,7 @@ export const recordingArticles: HelpArticle[] = [
   {
     slug: "record-an-expense",
     category: "recording",
+    updated: "2026-10-07",
     title: "Record an expense",
     description: "Every field on the entry form, saving a draft or submitting for approval, duplicate warnings, and entry numbers.",
     Body: () => (
@@ -133,6 +134,7 @@ export const recordingArticles: HelpArticle[] = [
   {
     slug: "scan-upi-screenshots",
     category: "recording",
+    updated: "2026-10-07",
     title: "Scan a UPI screenshot",
     description: "Turn a payment screenshot into an entry: what Kosh reads, confidence scores, supported apps, and tips for a clean scan.",
     Body: () => (
@@ -208,6 +210,7 @@ export const recordingArticles: HelpArticle[] = [
   {
     slug: "receipts-and-attachments",
     category: "recording",
+    updated: "2026-10-07",
     title: "Receipts and attachments",
     description: "Attach bills, invoices and screenshots to an entry: supported files, size limits, who can see them, and the receipt-required rule.",
     Body: () => (
@@ -249,6 +252,7 @@ export const recordingArticles: HelpArticle[] = [
   {
     slug: "find-entries",
     category: "recording",
+    updated: "2026-10-07",
     title: "Find, filter and export entries",
     description: "Search the Transactions page, filter by date, status, category or person, and export exactly what you see.",
     Body: () => (

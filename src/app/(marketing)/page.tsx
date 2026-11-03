@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { ALL_PERMISSION_KEYS } from "@/config/permissions";
 import { SITE, absoluteUrl, jsonLd } from "@/config/site";
 import { FEATURED_FAQS } from "@/content/faq";
+import { ORGANIZATION_ID, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: { absolute: SITE.title },
@@ -127,16 +128,23 @@ const SECURITY = [
   },
 ];
 
-const softwareJsonLd = {
+const landingJsonLd = {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: SITE.name,
-  url: absoluteUrl("/"),
-  description: SITE.description,
-  applicationCategory: "BusinessApplication",
-  applicationSubCategory: "Expense management",
-  operatingSystem: "Web browser",
-  inLanguage: "en-IN",
+  "@graph": [
+    organizationJsonLd,
+    websiteJsonLd,
+    {
+      "@type": "SoftwareApplication",
+      name: SITE.name,
+      url: absoluteUrl("/"),
+      description: SITE.description,
+      applicationCategory: "BusinessApplication",
+      applicationSubCategory: "Expense management",
+      operatingSystem: "Web browser",
+      inLanguage: "en-IN",
+      publisher: { "@id": ORGANIZATION_ID },
+    },
+  ],
 };
 
 function SectionHeading({ eyebrow, title, body, id }: { eyebrow: string; title: string; body?: string; id?: string }) {
@@ -154,7 +162,7 @@ function SectionHeading({ eyebrow, title, body, id }: { eyebrow: string; title: 
 export default function LandingPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(softwareJsonLd)} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(landingJsonLd)} />
 
       {/* Hero */}
       <section aria-labelledby="hero-title" className="relative overflow-hidden">

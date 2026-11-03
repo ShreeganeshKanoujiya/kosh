@@ -14,7 +14,7 @@ Each company gets its own isolated space. People sign in with the company's code
 - **Reports.** Daily, weekly and monthly spend; by category, user and payment method; cash-account movement; approval throughput. Export to CSV, Excel or PDF.
 - **Audit log** of every change, append-only at the database level.
 - **Mobile-first UI** with a bottom tab bar, swipe-to-edit rows, light and dark themes, and WCAG AA contrast with 44 px touch targets.
-- **Public site:** a landing page, FAQ, help center (`/help`), Privacy policy and Terms, with SEO metadata, a sitemap, `robots.txt` and a generated share image. Signed-in visitors to `/` go straight to the dashboard.
+- **Public site:** a landing page, FAQ, help center (`/help`), Privacy policy and Terms, with SEO metadata, structured data, a sitemap, `robots.txt`, a web app manifest and generated share images. Signed-in visitors to `/` go straight to the dashboard.
 
 ## Tech stack
 
@@ -82,10 +82,11 @@ All variables are documented in [`.env.example`](.env.example). The app validate
 | `DIRECT_URL` | Always | Migrations and the Prisma CLI (Supabase: session pooler, port 5432) |
 | `DATABASE_SSL_CA` | Production | Supabase's CA certificate, so the database's TLS certificate is verified |
 | `DATABASE_POOL_MAX` | Optional | Connections per app instance; use 3–5 on serverless |
-| `APP_URL` | Always | The address users open, e.g. `https://kosh.yourdomain.com`. Used in reset emails and for CSRF checks. |
+| `APP_URL` | Always | The address users open, e.g. `https://kosh.yourdomain.com`. Used in reset emails, CSRF checks, and the public pages' canonical URLs and sitemap, so set it before `next build`. |
 | `JWT_ACCESS_SECRET` | Always | Signs access tokens; use a different value per environment |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` | Production | Private storage for receipts and screenshots |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Optional | Password-reset emails |
+| `GOOGLE_SITE_VERIFICATION`, `BING_SITE_VERIFICATION` | Optional | Search Console / Bing Webmaster ownership tokens (HTML-tag method); set before `next build` |
 | `UPLOAD_DIR` | Optional | Keep uploads on local disk (development or a single server; not Vercel) |
 
 ## Scripts

@@ -6,6 +6,7 @@ export const accountArticles: HelpArticle[] = [
   {
     slug: "passwords-and-sessions",
     category: "account",
+    updated: "2026-10-07",
     title: "Passwords, sessions and security",
     description: "Change your password, see where you're signed in, sign out other devices, and review your login history.",
     Body: () => (
@@ -59,6 +60,7 @@ export const accountArticles: HelpArticle[] = [
   {
     slug: "troubleshooting",
     category: "account",
+    updated: "2026-10-07",
     title: "Troubleshooting",
     description: "Fixes for the most common problems: logging in, scans, approvals, uploads, exports and unexpected sign-outs.",
     Body: () => (

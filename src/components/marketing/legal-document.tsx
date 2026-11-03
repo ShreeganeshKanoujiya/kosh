@@ -1,6 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import { Fragment } from "react";
 import { SITE } from "@/config/site";
+import { formatDate } from "@/lib/format";
 import { PageIntro } from "./page-intro";
 
 export interface LegalSection {
@@ -29,7 +30,7 @@ export function LegalDocument({ title, intro, sections }: { title: string; intro
   return (
     <>
       <PageIntro eyebrow="Legal" title={title}>
-        <p className="mt-3 text-sm text-muted-foreground">Last updated {SITE.legalUpdated}</p>
+        <p className="mt-3 text-sm text-muted-foreground">Last updated {formatDate(SITE.legalUpdated)}</p>
       </PageIntro>
 
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-10 sm:px-6 md:py-14 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-14">

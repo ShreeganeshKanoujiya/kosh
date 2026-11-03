@@ -6,6 +6,7 @@ export const gettingStartedArticles: HelpArticle[] = [
   {
     slug: "getting-started",
     category: "getting-started",
+    updated: "2026-10-07",
     title: "Set up your company",
     description: "Create your company, save the company code, check your settings and invite your team — in about ten minutes.",
     Body: () => (
@@ -97,6 +98,7 @@ export const gettingStartedArticles: HelpArticle[] = [
   {
     slug: "logging-in",
     category: "getting-started",
+    updated: "2026-10-07",
     title: "Log in and stay signed in",
     description: "Logging in with your company code, resetting a forgotten password, account lockouts, and how long you stay signed in.",
     Body: () => (
@@ -149,6 +151,7 @@ export const gettingStartedArticles: HelpArticle[] = [
   {
     slug: "using-kosh-on-your-phone",
     category: "getting-started",
+    updated: "2026-10-07",
     title: "Use Kosh on your phone",
     description: "Add Kosh to your home screen, find your way around the tab bar, and record expenses quickly on the go.",
     Body: () => (

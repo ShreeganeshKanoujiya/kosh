@@ -5,6 +5,7 @@ export const administrationArticles: HelpArticle[] = [
   {
     slug: "users-and-roles",
     category: "administration",
+    updated: "2026-10-07",
     title: "Users and roles",
     description: "Add people to your company, choose their roles, reset passwords, disable or remove accounts, and build custom roles.",
     Body: () => (
@@ -105,6 +106,7 @@ export const administrationArticles: HelpArticle[] = [
   {
     slug: "categories-and-cash-accounts",
     category: "administration",
+    updated: "2026-10-07",
     title: "Categories and cash accounts",
     description: "Organise spending with categories, and track one or more cash boxes with their own opening and current balances.",
     Body: () => (
@@ -152,6 +154,7 @@ export const administrationArticles: HelpArticle[] = [
   {
     slug: "company-settings",
     category: "administration",
+    updated: "2026-10-07",
     title: "Company settings",
     description: "Currency, timezone, financial year, default cash account, approvals, receipt rules and a per-expense limit.",
     Body: () => (
@@ -219,6 +222,7 @@ export const administrationArticles: HelpArticle[] = [
   {
     slug: "audit-log",
     category: "administration",
+    updated: "2026-10-07",
     title: "The audit log",
     description: "A permanent record of who did what and when: sign-ins, changes to entries, users and settings, uploads and exports.",
     Body: () => (
